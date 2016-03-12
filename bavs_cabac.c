@@ -186,29 +186,52 @@ static inline unsigned int cavs_biari_decode_symbol(cavs_cabac_t *cb, bi_ctx_t *
         }
 
         //restore range		
-        while (t_rlps < QUARTER){
-        	t_rlps=t_rlps<<1;
-        	if (--cb->bits_to_go < 0) get_byte();   
-        	// Shift in next bit and add to value 
-        	cb->value_t = (cb->value_t << 1) | ((cb->buffer >> cb->bits_to_go) & 0x01);
-        }
+        //while (t_rlps < QUARTER){
+        //	t_rlps=t_rlps<<1;
+        //	if (--cb->bits_to_go < 0) get_byte();   
+        //	// Shift in next bit and add to value 
+        //	cb->value_t = (cb->value_t << 1) | ((cb->buffer >> cb->bits_to_go) & 0x01);
+        //}
+		int wn = log2_tab[t_rlps];
+		uint8_t rsd = (uint8_t)((cb->buffer << (8 - cb->bits_to_go)) | (*(cb->bs.p) >> (cb->bits_to_go))) >> (8 - wn);
+		cb->value_t = (cb->value_t << wn) | rsd; //+rsd;
+		cb->bits_to_go -= wn;
+		if (cb->bits_to_go < 0){
+			cb->buffer = *(cb->bs.p++);
+			cb->bits_to_go += 8;
+		}
 
         cb->s1 = 0;
-        cb->t1 = t_rlps & 0xff;
+		cb->t1 = (uint8_t)(t_rlps << wn); //t_rlps & 0xff;
 
         //restore value
         cb->value_s = 0;
-        while (cb->value_t<QUARTER){
-        	int j;
-        	if (--cb->bits_to_go < 0) 
-        		get_byte();   
-        	j=(cb->buffer >> cb->bits_to_go) & 0x01;
-        	// Shift in next bit and add to value 
-
-        	cb->value_t = (cb->value_t << 1) | j;
-        	cb->value_s++;
-        }
-        cb->value_t = cb->value_t & 0xff;
+        //while (cb->value_t<QUARTER){
+        //	int j;
+        //	if (--cb->bits_to_go < 0) get_byte();   
+        //	j=(cb->buffer >> cb->bits_to_go) & 0x01;
+        //	// Shift in next bit and add to value 
+        //	cb->value_t = (cb->value_t << 1) | j;
+        //	cb->value_s++;
+        //}
+		while (!cb->value_t){
+			if (--cb->bits_to_go < 0) get_byte();
+			// Shift in next bit and add to value 
+			cb->value_t = (cb->value_t << 1) | ((cb->buffer >> cb->bits_to_go) & 0x01);
+			cb->value_s++;
+		}
+		if (cb->value_t < QUARTER){
+			int wn = log2_tab[cb->value_t];
+			uint8_t rsd = (cb->buffer << (8 - cb->bits_to_go)) | (*(cb->bs.p) >> (cb->bits_to_go));
+			cb->value_t = (cb->value_t << wn) | (rsd >> (8 - wn));
+			cb->value_s += wn;
+			cb->bits_to_go -= wn;
+			if (cb->bits_to_go < 0){
+				cb->buffer = *(cb->bs.p++);
+				cb->bits_to_go += 8;
+			}
+		}
+		cb->value_t = (uint8_t)cb->value_t; // &0xff;
 
 		if (cb->dec_bypass) return(bit);
 		//update other parameters
