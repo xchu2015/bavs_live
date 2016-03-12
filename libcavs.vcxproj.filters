@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="bavs_cabac.c" />
+    <ClCompile Include="bavs_cavlc.c" />
+    <ClCompile Include="bavs_clearbit.c" />
+    <ClCompile Include="bavs_cpu.c" />
+    <ClCompile Include="bavs_decoder.c" />
+    <ClCompile Include="bavs_frame.c" />
+    <ClCompile Include="bavs_globe.c" />
+    <ClCompile Include="common\x86\bavs_mc-c.c">
+      <Filter>x86</Filter>
+    </ClCompile>
+    <ClCompile Include="threadpool.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="x86">
+      <UniqueIdentifier>{eab8ba20-bce0-45f8-a760-ef8f803a4074}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{eeee0389-ff78-4ea8-8c37-e522e2b1c420}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extras">
+      <UniqueIdentifier>{30ed579a-e0ad-4304-9fd3-7e3bf37b255e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="common\x86\bavs_avg.asm">
+      <Filter>x86</Filter>
+    </CustomBuild>
+    <CustomBuild Include="common\x86\bavs_const-a.asm">
+      <Filter>x86</Filter>
+    </CustomBuild>
+    <CustomBuild Include="common\x86\bavs_cpu-a.asm">
+      <Filter>x86</Filter>
+    </CustomBuild>
+    <CustomBuild Include="common\x86\bavs_deblock.asm">
+      <Filter>x86</Filter>
+    </CustomBuild>
+    <CustomBuild Include="common\x86\bavs_deblock_inter.asm">
+      <Filter>x86</Filter>
+    </CustomBuild>
+    <CustomBuild Include="common\x86\bavs_deblock_intra.asm">
+      <Filter>x86</Filter>
+    </CustomBuild>
+    <CustomBuild Include="common\x86\bavs_idct.asm">
+      <Filter>x86</Filter>
+    </CustomBuild>
+    <CustomBuild Include="common\x86\bavs_mc.asm">
+      <Filter>x86</Filter>
+    </CustomBuild>
+    <CustomBuild Include="common\x86\bavs_mc_chroma.asm">
+      <Filter>x86</Filter>
+    </CustomBuild>
+    <CustomBuild Include="common\x86\bavs_predict.asm">
+      <Filter>x86</Filter>
+    </CustomBuild>
+    <CustomBuild Include="common\x86\bavs_x86inc.asm">
+      <Filter>x86</Filter>
+    </CustomBuild>
+    <CustomBuild Include="common\x86\bavs_x86util.asm">
+      <Filter>x86</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="bavs_cabac.h" />
+    <ClInclude Include="bavs_cavlc.h" />
+    <ClInclude Include="bavs_clearbit.h" />
+    <ClInclude Include="bavs_cpu.h" />
+    <ClInclude Include="bavs_frame.h" />
+    <ClInclude Include="bavs_globe.h" />
+    <ClInclude Include="bavs_osdep.h" />
+  </ItemGroup>
+</Project>

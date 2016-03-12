@@ -1,0 +1,55 @@
+LIBRARY LIBCAVS
+
+EXPORTS
+
+cavs_decoder_create @1
+
+cavs_decoder_init_stream @2
+
+cavs_decoder_get_one_nal @3
+
+cavs_decoder_process @4
+
+cavs_decoder_realloc @5
+
+cavs_decoder_buffer_init @6
+
+cavs_decoder_buffer_end @7
+
+cavs_decoder_destroy @8
+
+cavs_decoder_slice_destroy @9
+
+cavs_decoder_get_seq @10
+
+cavs_out_delay_frame @11
+
+cavs_out_delay_frame_end @12
+
+cavs_decoder_seq_init @13
+
+cavs_decoder_seq_end @14
+
+cavs_decode_one_frame @15
+
+cavs_decoder_cur_frame_type @16
+
+cavs_decoder_thread_param_init @17
+
+cavs_decoder_probe_seq @18
+
+cavs_decoder_pic_header @19
+
+cavs_decoder_set_format_type @20
+
+cavs_decoder_seq_header_reset @21
+
+cavs_decoder_low_delay_value @22
+
+cavs_decode_one_frame_delay @23
+
+cavs_set_last_delay_frame @24
+
+cavs_decoder_seq_header_reset_pipeline @25
+
+cavs_decoder_slice_num_probe @26

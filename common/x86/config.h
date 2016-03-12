@@ -1,0 +1,1 @@
+#define HAVE_MMXEXT_INLINE 1
