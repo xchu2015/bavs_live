@@ -130,7 +130,7 @@ int cavs_cabac_start_decoding(cavs_cabac_t * cb, cavs_bitstream *s)
     }
     cb->value_t = cb->value_t & 0xff;
 
-    cb->dec_bypass  = 0;
+    //cb->dec_bypass  = 0;
     cb->b_cabac_error = 0;
 
 	return 0;
@@ -163,7 +163,7 @@ static inline unsigned int cavs_biari_decode_symbol(cavs_cabac_t *cb, bi_ctx_t *
 		cb->s1 = s2;
 		cb->t1 = t2;
 
-		if (cb->dec_bypass) return(bit);
+		//if (cb->dec_bypass) return(bit);
 		//update other parameters
 		bi_ct->cycno = cycno_trans1[cycno]; //if (cycno == 0)cycno = 1;(cycno | (!cycno));
 		bi_ct->lg_pmps = lg_pmps_tab_mps[cwr][lg_pmps];
@@ -233,7 +233,7 @@ static inline unsigned int cavs_biari_decode_symbol(cavs_cabac_t *cb, bi_ctx_t *
 		}
 		cb->value_t = (uint8_t)cb->value_t; // &0xff;
 
-		if (cb->dec_bypass) return(bit);
+		//if (cb->dec_bypass) return(bit);
 		//update other parameters
 		bi_ct->cycno = cycno_trans2[cycno];
 		lg_pmps = lg_pmps_tab[cwr][lg_pmps];
@@ -251,15 +251,84 @@ static inline unsigned int cavs_biari_decode_symbol(cavs_cabac_t *cb, bi_ctx_t *
 
 static inline unsigned int cavs_biari_decode_symbol_bypass(cavs_cabac_t *cb)
 {
-    bi_ctx_t ctx;
-    uint32_t bit;
-	ctx.cycno = 0; // added by xun
-    ctx.lg_pmps = (QUARTER << LG_PMPS_SHIFTNO) - 1;
-    ctx.mps = 0;
-    cb->dec_bypass = 1;
-    bit = cavs_biari_decode_symbol(cb, &ctx);
-    cb->dec_bypass = 0;
-    return bit;
+	//bi_ctx_t ctx;
+	//uint32_t bit;
+	//ctx.cycno = 0; // added by xun
+	//ctx.lg_pmps = (QUARTER << LG_PMPS_SHIFTNO) - 1;
+	//ctx.mps = 0;
+	//cb->dec_bypass = 1;
+	//bit = cavs_biari_decode_symbol(cb, &ctx);
+
+	//unsigned short lg_pmps = (QUARTER << LG_PMPS_SHIFTNO) - 1;
+	unsigned short t_rlps = 255; // lg_pmps >> 2;
+	unsigned short s2 = cb->s1;
+#if TEST_CABAC  
+	int16_t t1_d = cb->t1 - t_rlps;  //t_rlps; // lg_pmps_shift2[lg_pmps];	
+	unsigned short t2 = (uint8_t)t1_d;
+	//if ( t1_d >= 0 ){
+	//    //s2 = cb->s1;
+	//    t2 = t1_d; //s_flag = 0;
+	//}else
+	if (t1_d<0){
+		s2++; //s2 = cb->s1+1; //t2 = (uint8_t)t1_d; // 256 + t1_d;
+		t_rlps += cb->t1; //s_flag = 1;
+	}
+#endif
+
+	if (s2 < cb->value_s || (s2 == cb->value_s && cb->value_t < t2)) //MPS
+	{
+		cb->s1 = s2;
+		cb->t1 = t2;
+		return 0;
+	}
+	else //if (s2 > cb->value_s || (s2 == cb->value_s && cb->value_t >= t2)) //LPS
+	{
+#if TEST_CABAC
+		/*t_rlps = (s_flag==0)? lg_pmps_shift2[lg_pmps]
+		:(cb->t1 + lg_pmps_shift2[lg_pmps]);*/
+#endif
+		if (s2 == cb->value_s) cb->value_t = (cb->value_t - t2);
+		else{
+			if (--cb->bits_to_go < 0) get_byte();
+			// Shift in next bit and add to value 
+			cb->value_t = ((cb->value_t << 1) | ((cb->buffer >> cb->bits_to_go) & 0x01)) + 256 - t2;
+			//cb->value_t = 256 + cb->value_t - t2;
+		}
+
+		//restore range		
+		if (t_rlps < QUARTER){
+			t_rlps <<= 1;
+			if (--cb->bits_to_go < 0) get_byte();
+			// Shift in next bit and add to value 
+			cb->value_t = (cb->value_t << 1) | ((cb->buffer >> cb->bits_to_go) & 0x01);
+		}
+		cb->s1 = 0;
+		cb->t1 = (uint8_t)t_rlps; //t_rlps & 0xff;
+
+		//restore value
+		cb->value_s = 0;
+		while (!cb->value_t){
+			if (--cb->bits_to_go < 0) get_byte();
+			// Shift in next bit and add to value 
+			cb->value_t = (cb->value_t << 1) | ((cb->buffer >> cb->bits_to_go) & 0x01);
+			cb->value_s++;
+		}
+		if (cb->value_t < QUARTER){
+			int wn = log2_tab[cb->value_t];
+			uint8_t rsd = (cb->buffer << (8 - cb->bits_to_go)) | (*(cb->bs.p) >> (cb->bits_to_go));
+			cb->value_t = (cb->value_t << wn) | (rsd >> (8 - wn));
+			cb->value_s += wn;
+			cb->bits_to_go -= wn;
+			if (cb->bits_to_go < 0){
+				cb->buffer = *(cb->bs.p++);
+				cb->bits_to_go += 8;
+			}
+		}
+		cb->value_t = (uint8_t)cb->value_t; // &0xff;
+		return 1;
+	}
+	//cb->dec_bypass = 0;
+	//return bit;
 }
 
 int cavs_biari_decode_stuffing_bit(cavs_cabac_t *cb)

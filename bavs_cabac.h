@@ -49,7 +49,7 @@ typedef struct
     //unsigned int buffer;
     uint8_t buffer;
 	char bits_to_go;
-    int		dec_bypass;
+    //int		dec_bypass;
 
     cavs_bitstream bs;
 
