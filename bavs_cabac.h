@@ -24,8 +24,8 @@
 
 #define LG_PMPS_SHIFTNO 2
 #define B_BITS 10
-#define HALF      (1 << (B_BITS-1))
-#define QUARTER   (1 << (B_BITS-2))
+#define HALF      512 //(1 << (B_BITS-1))
+#define QUARTER   256 //(1 << (B_BITS-2))
 
 #if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
 #define UNUSED __attribute__((unused))
@@ -35,20 +35,20 @@
 
 typedef struct
 {
+	uint16_t	lg_pmps;	/* 10 bits */
     uint8_t		mps;		/* 1 bit */
-    uint32_t	lg_pmps;	/* 10 bits */
+    //uint32_t	lg_pmps;	/* 10 bits */
     uint8_t		cycno;		/* 2 bits */	
 } bi_ctx_t;
 
 typedef struct
 {
     /* state */
-    unsigned int s1, t1;
-    unsigned int value_s, value_t;
+	uint16_t s1, t1; /*unsigned int*/
+	uint16_t value_s, value_t; /*unsigned int*/
     //unsigned int buffer;
     uint8_t buffer;
-
-    int     bits_to_go;
+	char bits_to_go;
     int		dec_bypass;
 
     cavs_bitstream bs;
@@ -74,10 +74,10 @@ typedef struct
     bi_ctx_t mb_weighting_pred;
 #endif
 
-	int b_cabac_error;
+	char b_cabac_error;
 } cavs_cabac_t;
 
-static UNUSED uint32_t lg_pmps_tab[6][1024] = {
+static UNUSED const uint16_t lg_pmps_tab[6][1024] = {
 {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -375,7 +375,7 @@ static UNUSED uint8_t cycno_trans_2d[2][4]=
     {1, 2, 3, 3}  /*cycno_trans2*/
 };
 
-static UNUSED uint32_t lg_pmps_tab_mps[6][1024] ={
+static UNUSED const uint16_t lg_pmps_tab_mps[6][1024] ={
 {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -642,7 +642,7 @@ static UNUSED uint32_t lg_pmps_tab_mps[6][1024] ={
 } /*cwr = 5*/
 };
 
-static UNUSED uint32_t lg_pmps_shift2[1024] ={ /* lg_pmps>>2 */
+static UNUSED const uint8_t lg_pmps_shift2[1024] ={ /* lg_pmps>>2 */
 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,
 10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,15,15,15,15,16,16,16
 ,16,17,17,17,17,18,18,18,18,19,19,19,19,20,20,20,20,21,21,21,21,22,22,22,22,23,23,
@@ -712,7 +712,6 @@ static UNUSED uint8_t t_rlps_shift[512]= {
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-
 };
 
 /* init the contexts given i_slice_type, the quantif and the model */
