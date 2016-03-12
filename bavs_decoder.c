@@ -6967,12 +6967,12 @@ void cavs_decoder_init( cavs_decoder *p )
     p->filter_lh = cavs_filter_lh_c;
     p->filter_cv = cavs_filter_cv_c;
     p->filter_ch = cavs_filter_ch_c;
-    if( p->cpu & CAVS_CPU_SSE2)
+    //if( p->cpu & CAVS_CPU_SSE2)
     {   
         p->filter_lv = cavs_filter_lv_sse2;
         p->filter_lh = cavs_filter_lh_sse2;
     }
-    if( p->cpu & CAVS_CPU_SSE2 )
+    //if( p->cpu & CAVS_CPU_SSE2 )
     {
         p->filter_cv = cavs_filter_cv_mmxext;
         p->filter_ch = cavs_filter_ch_mmxext;
@@ -7160,7 +7160,7 @@ void cavs_decoder_init( cavs_decoder *p )
         p->put_cavs_qpel_pixels_tab[0][12] =  ff_put_cavs_qpel16_mc03_mmxext;
      }
 
-     if( p->cpu & CAVS_CPU_SSE2 )
+     //if( p->cpu & CAVS_CPU_SSE2 )
      { 
         p->put_cavs_qpel_pixels_tab[0][ 1] =  ff_put_cavs_qpel16_mc10_mmxext;
         p->put_cavs_qpel_pixels_tab[0][ 3] =  ff_put_cavs_qpel16_mc30_mmxext;
@@ -7189,7 +7189,7 @@ void cavs_decoder_init( cavs_decoder *p )
     	 p->put_cavs_qpel_pixels_tab[1][12] =  ff_put_cavs_qpel8_mc03_mmxext;
      }
 
-     if( p->cpu & CAVS_CPU_SSE2 )
+     //if( p->cpu & CAVS_CPU_SSE2 )
      {
     	p->put_cavs_qpel_pixels_tab[1][ 1] =  ff_put_cavs_qpel8_mc10_mmxext;
     	p->put_cavs_qpel_pixels_tab[1][ 3] =  ff_put_cavs_qpel8_mc30_mmxext;
@@ -7217,7 +7217,7 @@ void cavs_decoder_init( cavs_decoder *p )
     	p->avg_cavs_qpel_pixels_tab[0][ 8] =  ff_avg_cavs_qpel16_mc02_mmxext;
     	p->avg_cavs_qpel_pixels_tab[0][12] =  ff_avg_cavs_qpel16_mc03_mmxext;
      }
-     if( p->cpu & CAVS_CPU_SSE2 )
+     //if( p->cpu & CAVS_CPU_SSE2 )
      {
         p->avg_cavs_qpel_pixels_tab[0][ 1] =  ff_avg_cavs_qpel16_mc10_mmxext;    
         p->avg_cavs_qpel_pixels_tab[0][ 3] =  ff_avg_cavs_qpel16_mc30_mmxext;   
@@ -7244,7 +7244,7 @@ void cavs_decoder_init( cavs_decoder *p )
         p->avg_cavs_qpel_pixels_tab[1][ 8] =  ff_avg_cavs_qpel8_mc02_mmxext;
         p->avg_cavs_qpel_pixels_tab[1][12] =  ff_avg_cavs_qpel8_mc03_mmxext;
      }
-     if( p->cpu & CAVS_CPU_SSE2 )
+     //if( p->cpu & CAVS_CPU_SSE2 )
      {
         p->avg_cavs_qpel_pixels_tab[1][ 1] =  ff_avg_cavs_qpel8_mc10_mmxext;
         p->avg_cavs_qpel_pixels_tab[1][ 3] =  ff_avg_cavs_qpel8_mc30_mmxext;
