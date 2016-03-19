@@ -1166,8 +1166,9 @@ int cavs_cabac_get_mb_part_type(cavs_decoder *p)
 static const int t_chr[5] = { 0,1,2,4,3000};
 int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_escape_order, int b_chroma)
 {
-    int pairs, rank, pos;
-    int run, level, abslevel, symbol;
+	uint8_t rank, pos;
+    int pairs/*, rank, pos*/;
+    int /*run,*/level, abslevel, symbol;
     int *run_buf = p->run_buf, *level_buf = p->level_buf;
 
     /* read coefficients for whole block */
@@ -1177,25 +1178,16 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     int ctx, ctx2, offset;
 	int i_ret = 0;
 
-    if( !b_chroma )
-    {
-        if( p->ph.b_picture_structure == 0 )
-        {
+    if( !b_chroma ){
+        if( p->ph.b_picture_structure == 0 ){
             primary = p->cabac.fld_map_contexts;
-        }
-        else
-        {
+        }else{
             primary = p->cabac.map_contexts;
         }
-    }
-    else 
-    {
-        if( p->ph.b_picture_structure == 0 )
-        {
+    }else {
+        if( p->ph.b_picture_structure == 0 ){
             primary = p->cabac.fld_last_contexts;
-        }
-        else
-        {
+        }else{
             primary = p->cabac.last_contexts;
         }
     }
@@ -1206,16 +1198,15 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     for( pairs=0; pairs<65; pairs++ ) {
     	p_ctx = primary[rank];
     	//! EOB
-    	if( rank>0) {
+    	if( rank/*>0*/) {
     		p_ctx2 = primary[5+(pos>>5)];
     		ctx2 = (pos>>1)&0x0f;
 #if 1
              /* note : can't cross border of array */
-             if( pos < 0 || pos > 63 )
-             {
+             /*if( pos < 0 || pos > 63 ){
                 printf("[error]MB coeffs over border\n");
                 return -1;   
-             }
+             }*/
 #endif              
     		ctx = 0;
 #if 0    		
@@ -1223,17 +1214,13 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     			break;
 #else
 			i_ret = cavs_biari_decode_symbol_w(&p->cabac, p_ctx+ctx, p_ctx2+ctx2);
-			if( i_ret == -1)
-			{
+			if( i_ret == -1){
 				p->b_error_flag = 1;
 				return -1;
-			}
-			else if(i_ret!= 0 )
-			{
+			}else if(i_ret!= 0 ){
 				break;
 			}
 #endif
-
     	}
     	//! Level
     	ctx = 1;
@@ -1242,9 +1229,7 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     		++symbol;
     		++ctx;
     		if( ctx>=2 ) ctx =2;
-
-			if(  symbol > (1<<15) ) /* remove endless loop */
-			{
+			if(  symbol > (32768/*1<<15*/) ) /* remove endless loop */{
 				p->b_error_flag = 1;
 				return -1;
 			}
@@ -1261,8 +1246,7 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     	//! Run
     	if( abslevel==1 ) { 
     		offset = 4;
-    	}
-    	else {
+    	}else {
     		offset = 6;
     	}
     	symbol = 0;
@@ -1271,24 +1255,20 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     		++symbol;
     		++ctx;
     		if( ctx>=1 ) ctx =1;
-
-			if(  symbol > 63 )	/* remove endless loop */
-			{
+			if(  symbol > 63 )	/* remove endless loop */{
 				p->b_error_flag = 1;
 				return -1;
 			}
     	}
-    	run = symbol;
+    	//run = symbol;
 
     	level_buf[pairs] = level;
-    	run_buf[pairs] = run + 1;
-        
+		run_buf[pairs] = ++symbol; // run + 1;
 #if CAVS_TRACE
     	fprintf(trace_fp,"level\t\t\t%d\n",level);
     	fprintf(trace_fp,"run  \t\t\t%d\n",run/*, p->cabac.buffer, p->cabac.bits_to_go*/);
     	fflush(trace_fp);
 #endif
-
     	if( abslevel>t_chr[rank] ) {
     		if( abslevel <= 2 )
     			rank = abslevel;
@@ -1297,16 +1277,14 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     		else
     			rank = 4;
     	}
-    	pos += (run+1);
-    	if( pos>=64 ) pos = 63;
+		pos += symbol; // (run + 1);
+		if (pos >= 64) pos = 63;
     }
 
     p->b_error_flag = (&(p->cabac))->b_cabac_error;
-    if( p->b_error_flag )
-    {
+    if( p->b_error_flag ){
     	printf("[error]MB coeffs of AEC is wrong\n");
-    }
-  
+    } 
     return pairs;
 }
 
