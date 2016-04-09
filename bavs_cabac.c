@@ -136,7 +136,7 @@ int cavs_cabac_start_decoding(cavs_cabac_t * cb, cavs_bitstream *s)
 	return 0;
 }
 
-static inline unsigned int cavs_biari_decode_symbol(cavs_cabac_t *cb, bi_ctx_t *bi_ct)
+static inline unsigned int cavs_biari_decode_symbol_bak(cavs_cabac_t *cb, bi_ctx_t *bi_ct)
 {
 	//unsigned char s_flag;
     unsigned char cycno = bi_ct->cycno;
@@ -247,6 +247,247 @@ static inline unsigned int cavs_biari_decode_symbol(cavs_cabac_t *cb, bi_ctx_t *
 
     //bi_ct->lg_pmps = lg_pmps;
     //return(bit);
+}
+
+//static const unsigned char cwr_t[3] = {197,95,46};
+static inline unsigned int cavs_biari_decode_symbol_nw(cavs_cabac_t *cb, bi_ctx_t *bi_ct)
+{
+	unsigned char cycno = bi_ct->cycno;
+	unsigned char cwr = cwr_trans[cycno];
+	unsigned char bit = 0;// bi_ct->mps;
+	unsigned short lg_pmps = bi_ct->lg_pmps;
+	unsigned short t_rlps = lg_pmps >> 2;
+	unsigned short s2 = cb->s1;
+	unsigned char tmp;//int16_t nw = cb->value_s;// -s2;
+#if TEST_CABAC
+	int16_t t1_d = cb->t1 - t_rlps; 
+	unsigned char /*short*/ t2 = /*(uint8_t)*/t1_d;
+	if (t1_d<0) s2++; //t_rlps += cb->t1;
+#endif
+	//nw -= s2;
+	//for (int k = 0; k < nw; k++){
+	//	bit++;
+	//	//update other parameters
+	//	lg_pmps = lg_pmps_tab_mps[cwr][lg_pmps];
+	//	t_rlps = lg_pmps >> 2;
+	//	cycno = cycno_trans1[cycno]; 
+	//	cwr = cwr_trans[cycno];
+	//	t1_d = t2/*cb->t1*/ - t_rlps;
+	//	if (t1_d<0) s2++; //t_rlps += t2;
+	//	t2 = (uint8_t)t1_d;
+	//}
+	if (s2 < cb->value_s || (s2 == cb->value_s && cb->value_t < t2)){ //MPS
+		bit++;	//cb->t1 = t2; //cb->s1 = s2;
+		//update other parameters
+		lg_pmps = lg_pmps_tab_mps[cwr][lg_pmps];//return bit;
+		t_rlps = lg_pmps >> 2;
+		cycno = cycno_trans1[cycno]; //if (cycno == 0)cycno = 1;(cycno | (!cycno));
+		cwr = cwr_trans[cycno];
+		t1_d = t2/*cb->t1*/ - t_rlps;
+		if (t1_d<0) s2++; //t_rlps += t2;
+		t2 = (uint8_t)t1_d;
+	}
+	tmp = cwr + 3;
+	while (s2 < cb->value_s || (s2 == cb->value_s && cb->value_t < t2)) //MPS
+	{
+		bit++;	//cb->t1 = t2; //cb->s1 = s2;
+		//update other parameters
+		//lg_pmps = lg_pmps_tab_mps[cwr][lg_pmps];//return bit;
+		lg_pmps -= ((lg_pmps >> tmp) + (t_rlps >> tmp));
+		t_rlps = lg_pmps >> 2;
+		//cycno = cycno_trans1[cycno]; //if (cycno == 0)cycno = 1;(cycno | (!cycno));
+		//cwr = cwr_trans[cycno];
+		t1_d = t2/*cb->t1*/ - t_rlps;		
+		if (t1_d<0) s2++; //t_rlps += t2;
+		t2 = (uint8_t)t1_d;
+	}
+	//else //if (s2 > cb->value_s || ( s2 == cb->value_s && cb->value_t >= t2)) //LPS
+	{
+		//bit ^= 0x01; //bit=!bit;//LPS 
+		if (t1_d<0) t_rlps += (t1_d+t_rlps);
+		if (s2 == cb->value_s) cb->value_t -= t2;// (cb->value_t - t2);
+		else{
+			if (--cb->bits_to_go < 0) get_byte();
+			// Shift in next bit and add to value 
+			cb->value_t = ((cb->value_t << 1) | ((cb->buffer >> cb->bits_to_go) & 0x01)) + 256 - t2;
+			//cb->value_t = 256 + cb->value_t - t2;
+		}
+		//restore range		
+		int wn = log2_tab[t_rlps];
+		uint8_t rsd = (uint8_t)((cb->buffer << (8 - cb->bits_to_go)) | (*(cb->bs.p) >> (cb->bits_to_go))) >> (8 - wn);
+		cb->value_t = (cb->value_t << wn) | rsd; //+rsd;
+		cb->bits_to_go -= wn;
+		if (cb->bits_to_go < 0){
+			cb->buffer = *(cb->bs.p++);
+			cb->bits_to_go += 8;
+		}
+		cb->s1 = 0;
+		cb->t1 = (uint8_t)(t_rlps << wn); //t_rlps & 0xff;
+		//restore value
+		cb->value_s = 0;
+		while (!cb->value_t){
+			if (--cb->bits_to_go < 0) get_byte();
+			// Shift in next bit and add to value 
+			cb->value_t = (cb->value_t << 1) | ((cb->buffer >> cb->bits_to_go) & 0x01);
+			cb->value_s++;
+		}
+		if (cb->value_t < QUARTER){
+			int wn = log2_tab[cb->value_t];
+			uint8_t rsd = (cb->buffer << (8 - cb->bits_to_go)) | (*(cb->bs.p) >> (cb->bits_to_go));
+			cb->value_t = (cb->value_t << wn) | (rsd >> (8 - wn));
+			cb->value_s += wn;
+			cb->bits_to_go -= wn;
+			if (cb->bits_to_go < 0){
+				cb->buffer = *(cb->bs.p++);
+				cb->bits_to_go += 8;
+			}
+		}
+		cb->value_t = (uint8_t)cb->value_t; // &0xff;
+		//update other parameters
+		bi_ct->cycno = cycno_trans2[cycno];//lg_pmps += cwr_t[cwr];
+		lg_pmps = lg_pmps_tab[cwr][lg_pmps];
+		if (lg_pmps >= 1024){
+			lg_pmps = 2047 - lg_pmps;
+			bi_ct->mps = !(bi_ct->mps);
+		}
+		bi_ct->lg_pmps = lg_pmps;
+		return bit;
+	}
+}
+
+static inline unsigned int cavs_biari_decode_symbol(cavs_cabac_t *cb, bi_ctx_t *bi_ct)
+{
+	//unsigned char s_flag;
+	unsigned char cycno = bi_ct->cycno;
+	unsigned char cwr = cwr_trans[cycno];
+	unsigned char bit = bi_ct->mps;
+	unsigned short lg_pmps = bi_ct->lg_pmps;
+	unsigned short t_rlps = lg_pmps >> 2;
+	unsigned short s2 = cb->s1;
+#if TEST_CABAC
+	int16_t t1_d = cb->t1 - t_rlps; // lg_pmps_shift2[lg_pmps];
+	unsigned short t2 = (uint8_t)t1_d;
+	//if ( t1_d >= 0 ){
+	//    //s2 = cb->s1;
+	//    t2 = t1_d; //s_flag = 0;
+	//}else
+	if (t1_d<0){
+		s2++; //s2 = cb->s1+1; //t2 = (uint8_t)t1_d; // 256 + t1_d;
+		t_rlps += cb->t1; //s_flag = 1;
+	}
+#endif
+
+	if (s2 < cb->value_s || (s2 == cb->value_s && cb->value_t < t2)) //MPS
+	{
+		cb->s1 = s2;
+		cb->t1 = t2;
+
+		//if (cb->dec_bypass) return(bit);
+		//update other parameters
+		bi_ct->cycno = cycno_trans1[cycno]; //if (cycno == 0)cycno = 1;(cycno | (!cycno));
+		bi_ct->lg_pmps = lg_pmps_tab_mps[cwr][lg_pmps];
+		return bit;
+	}
+	else //if (s2 > cb->value_s || ( s2 == cb->value_s && cb->value_t >= t2)) //LPS
+	{
+		bit ^= 0x01; //bit=!bit;//LPS 
+#if TEST_CABAC
+		/*t_rlps = (s_flag==0)? lg_pmps_shift2[lg_pmps]
+		:(cb->t1 + lg_pmps_shift2[lg_pmps]);*/
+#endif
+
+		if (s2 == cb->value_s) cb->value_t = (cb->value_t - t2);
+		else{
+			if (--cb->bits_to_go < 0) get_byte();
+			// Shift in next bit and add to value 
+			cb->value_t = ((cb->value_t << 1) | ((cb->buffer >> cb->bits_to_go) & 0x01)) + 256 - t2;
+			//cb->value_t = 256 + cb->value_t - t2;
+		}
+
+		/*if (cb->value_t){
+			int wn = log2_tab[t_rlps];
+			uint8_t rsd = ((cb->buffer << (8 - cb->bits_to_go)) | (*(cb->bs.p) >> (cb->bits_to_go)));
+			cb->s1 = 0;
+			cb->t1 = (uint8_t)(t_rlps << wn);
+			cb->value_s = 0;
+			cb->value_t = (cb->value_t << wn) | (rsd >> (8 - wn));
+			cb->bits_to_go -= wn;
+			if (cb->value_t < QUARTER){
+				int wn2 = log2_tab[cb->value_t];
+				cb->value_t = (cb->value_t << wn2) | (rsd >> (8 - wn-wn2));
+				cb->value_s = wn2;
+				cb->bits_to_go -= wn2;
+			}
+			if (cb->bits_to_go < 0){
+				cb->buffer = *(cb->bs.p++);
+				cb->bits_to_go += 8;
+			}
+		}
+		else*/
+		{
+			//restore range		
+			//while (t_rlps < QUARTER){
+			//	t_rlps=t_rlps<<1;
+			//	if (--cb->bits_to_go < 0) get_byte();   
+			//	// Shift in next bit and add to value 
+			//	cb->value_t = (cb->value_t << 1) | ((cb->buffer >> cb->bits_to_go) & 0x01);
+			//}
+			int wn = log2_tab[t_rlps];
+			uint8_t rsd = (uint8_t)((cb->buffer << (8 - cb->bits_to_go)) | (*(cb->bs.p) >> (cb->bits_to_go))) >> (8 - wn);
+			cb->value_t = (cb->value_t << wn) | rsd; //+rsd;
+			cb->bits_to_go -= wn;
+			if (cb->bits_to_go < 0){
+				cb->buffer = *(cb->bs.p++);
+				cb->bits_to_go += 8;
+			}
+
+			cb->s1 = 0;
+			cb->t1 = (uint8_t)(t_rlps << wn); //t_rlps & 0xff;
+
+			//restore value
+			cb->value_s = 0;
+			//while (cb->value_t<QUARTER){
+			//	int j;
+			//	if (--cb->bits_to_go < 0) get_byte();   
+			//	j=(cb->buffer >> cb->bits_to_go) & 0x01;
+			//	// Shift in next bit and add to value 
+			//	cb->value_t = (cb->value_t << 1) | j;
+			//	cb->value_s++;
+			//}
+			while (!cb->value_t){
+				if (--cb->bits_to_go < 0) get_byte();
+				// Shift in next bit and add to value 
+				cb->value_t = (cb->value_t << 1) | ((cb->buffer >> cb->bits_to_go) & 0x01);
+				cb->value_s++;
+			}
+			if (cb->value_t < QUARTER){
+				int wn = log2_tab[cb->value_t];
+				uint8_t rsd = (cb->buffer << (8 - cb->bits_to_go)) | (*(cb->bs.p) >> (cb->bits_to_go));
+				cb->value_t = (cb->value_t << wn) | (rsd >> (8 - wn));
+				cb->value_s += wn;
+				cb->bits_to_go -= wn;
+				if (cb->bits_to_go < 0){
+					cb->buffer = *(cb->bs.p++);
+					cb->bits_to_go += 8;
+				}
+			}
+		}
+		cb->value_t = (uint8_t)cb->value_t; // &0xff;
+
+		//if (cb->dec_bypass) return(bit);
+		//update other parameters
+		bi_ct->cycno = cycno_trans2[cycno];
+		lg_pmps = lg_pmps_tab[cwr][lg_pmps];
+		if (lg_pmps >= 1024){
+			lg_pmps = 2047 - lg_pmps;
+			bi_ct->mps = bit; // !(bi_ct->mps);
+		}
+		bi_ct->lg_pmps = lg_pmps;
+		return bit;
+	}
+
+	//bi_ct->lg_pmps = lg_pmps;
+	//return(bit);
 }
 
 static inline unsigned int cavs_biari_decode_symbol_bypass(cavs_cabac_t *cb)
@@ -1226,11 +1467,21 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     	ctx = 1; symbol = 0;
 		if (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx) == 0){
 			++symbol; ++ctx;
-			while (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx) == 0) {
-				//++symbol; ++ctx; if (ctx >= 2) ctx = 2;
-				if (++symbol > (32768/*1<<15*/)) /* remove endless loop */{
-					p->b_error_flag = 1;
-					return -1;
+			//if ((p_ctx + ctx)->mps == 0){
+			//	symbol += cavs_biari_decode_symbol_nw(cb/*&p->cabac*/, p_ctx + ctx);
+			//	if (symbol > (32768/*1<<15*/)) /* remove endless loop */{
+			//		p->b_error_flag = 1;
+			//		return -1;
+			//	}
+			//}
+			//else
+			{
+				while (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx) == 0) {
+					//++symbol; ++ctx; if (ctx >= 2) ctx = 2;
+					if (++symbol > (32768/*1<<15*/)) /* remove endless loop */{
+						p->b_error_flag = 1;
+						return -1;
+					}
 				}
 			}
 		}
@@ -1248,11 +1499,20 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     	symbol = 0; ctx = 0;
 		if (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx + offset) == 0){
 			++symbol; ++ctx;
-			while (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx + offset) == 0) {
-				//++symbol; //if (ctx >= 1) ctx = 1;
-				if (++symbol > 63)	/* remove endless loop */{
+			if ((p_ctx + ctx + offset)->mps == 0){
+				symbol += cavs_biari_decode_symbol_nw(cb/*&p->cabac*/, p_ctx + ctx + offset);
+				if (symbol > 63)	/* remove endless loop */{
 					p->b_error_flag = 1;
 					return -1;
+				}
+			}
+			else{
+				while (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx + offset) == 0) {
+					//++symbol; //if (ctx >= 1) ctx = 1;
+					if (++symbol > 63)	/* remove endless loop */{
+						p->b_error_flag = 1;
+						return -1;
+					}
 				}
 			}
 		}
