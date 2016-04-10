@@ -927,11 +927,11 @@ int cavs_cabac_get_mb_type_p(cavs_decoder *p)
 	}
 	else
 	{
-		if(symbol > 5)
+		/*if(symbol > 5)
 		{
 			p->b_error_flag = 1;
 			return -1;
-		}
+		}*/
 		symbol =  DMapNonSkip[symbol];
 	}
 
@@ -1011,7 +1011,7 @@ int cavs_cabac_get_intra_luma_pred_mode(cavs_decoder *p)
     {
         ++symbol;
         ++i;
-        if (i>=3) i = 3;
+        //if (i>=3) i = 3;
         if (symbol == 4) break;
     }
 
