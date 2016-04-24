@@ -1436,10 +1436,64 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     
     //! Decode 
     rank = 0; pos = 0;
-    for( pairs=0; pairs<65; pairs++ ) {
+	////**********************************************************************************/
+	p_ctx = primary[0/*rank*/];
+	//! Level
+	ctx = 1; symbol = 0;
+	if (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx) == 0){
+		++symbol; ++ctx;
+		while (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx) == 0) {
+			//++symbol; ++ctx; if (ctx >= 2) ctx = 2;
+			if (++symbol > (32768/*1<<15*/)) /* remove endless loop */{
+				p->b_error_flag = 1;
+				return -1;
+			}
+		}
+	}
+	abslevel = symbol + 1;
+	//! Sign
+	if (cavs_biari_decode_symbol_bypass(cb/*&p->cabac*/))
+		level = -abslevel;
+	else
+		level = abslevel;
+	//! Run
+	if (abslevel == 1) offset = 4;
+	else offset = 6;
+	symbol = 0; ctx = 0;
+	if (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx /*+ ctx*/ + offset) == 0){
+		++symbol; ++ctx;
+		if ((p_ctx + ctx + offset)->mps == 0){
+			symbol += cavs_biari_decode_symbol_nw(cb/*&p->cabac*/, p_ctx + ctx + offset);
+			if (symbol > 63)	/* remove endless loop */{
+				p->b_error_flag = 1;
+				return -1;
+			}
+		}
+		else{
+			while (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx + offset) == 0) {
+				//++symbol; //if (ctx >= 1) ctx = 1;
+				if (++symbol > 63)	/* remove endless loop */{
+					p->b_error_flag = 1;
+					return -1;
+				}
+			}
+		}
+	}
+	level_buf[0] = level;
+	run_buf[0] = ++symbol; // run + 1;
+	/*if (abslevel>t_chr[rank])*/ {
+		if (abslevel <= 2)	rank = abslevel;
+		else if (abslevel <= 4) rank = 3;
+		else rank = 4;
+	}
+	pos += symbol; // (run + 1);
+	if (pos >= 64) pos = 63;
+	////**********************************************************************************/
+    for( pairs=1/*0*/; pairs<65; pairs++ ) {
     	p_ctx = primary[rank];
     	//! EOB
-    	if( rank/*>0*/) {
+    	//if( rank/*>0*/) 
+		{
     		p_ctx2 = primary[5+(pos>>5)];
     		ctx2 = (pos>>1)&0x0f;
 #if 1
