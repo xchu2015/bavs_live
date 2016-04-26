@@ -1503,12 +1503,12 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
                 return -1;   
              }*/
 #endif              
-    		ctx = 0;
+    		//ctx = 0;
 #if 0    		
 			if( cavs_biari_decode_symbol_w(&p->cabac, p_ctx+ctx, p_ctx2+ctx2) )
     			break;
 #else
-			i_ret = cavs_biari_decode_symbol_w(cb/*&p->cabac*/, p_ctx+ctx, p_ctx2+ctx2);
+			i_ret = cavs_biari_decode_symbol_w(cb/*&p->cabac*/, p_ctx/*+ctx*/, p_ctx2+ctx2);
 			if( i_ret == -1){
 				p->b_error_flag = 1;
 				return -1;
@@ -1518,9 +1518,9 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
 #endif
     	}
     	//! Level
-    	ctx = 1; symbol = 0;
+		ctx = 1; symbol = 0; offset = 4;
 		if (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx) == 0){
-			++symbol; ++ctx;
+			++symbol; ++ctx; offset = 6;
 			//if ((p_ctx + ctx)->mps == 0){
 			//	symbol += cavs_biari_decode_symbol_nw(cb/*&p->cabac*/, p_ctx + ctx);
 			//	if (symbol > (32768/*1<<15*/)) /* remove endless loop */{
@@ -1547,8 +1547,8 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     		level = abslevel;
 
     	//! Run
-    	if( abslevel==1 ) offset = 4;
-    	else offset = 6;
+    	//if( abslevel==1 ) offset = 4;
+    	//else offset = 6;
 
     	symbol = 0; ctx = 0;
 		if (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx + offset) == 0){
@@ -1579,7 +1579,7 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     	fprintf(trace_fp,"run  \t\t\t%d\n",run/*, p->cabac.buffer, p->cabac.bits_to_go*/);
     	fflush(trace_fp);
 #endif
-    	if( abslevel>t_chr[rank] ) {
+    	if( rank<4 && abslevel>t_chr[rank] ) {
     		if( abslevel <= 2 )	rank = abslevel;
     		else if( abslevel<=4 ) rank = 3;
     		else rank = 4;
