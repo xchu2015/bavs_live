@@ -1077,26 +1077,26 @@ int cavs_cabac_get_cbp(cavs_decoder *p)
 
     /* -1 for cbp not available(outside of slice) */
     /* block 0 */
-    a = !(p->i_cbp_left & (1<<1));
-    b = !(p->p_cbp_top[p->i_mb_x] & (1<<2));
+    a = !(p->i_cbp_left & (2/*1<<1*/));
+    b = !(p->p_cbp_top[p->i_mb_x] & (4/*1<<2*/));
     bit = cavs_biari_decode_symbol(&p->cabac, ctx + a + 2*b);
     symbol |= bit;
 
     /* block 1 */
     a = !bit;	/*we just get the zero count of left block*/
-    b = !(p->p_cbp_top[p->i_mb_x] & (1<<3));
+    b = !(p->p_cbp_top[p->i_mb_x] & (8/*1<<3*/));
     bit = cavs_biari_decode_symbol(&p->cabac, ctx + a + 2*b);
     symbol |= (bit<<1);
 
     /* block 2 */
-    a = !(p->i_cbp_left & (1<<3));
+    a = !(p->i_cbp_left & (8/*1<<3*/));
     b = !(symbol & 1);
     bit = cavs_biari_decode_symbol(&p->cabac, ctx + a + 2*b);
     symbol |= (bit<<2);
 
     /* block 3 */
     a = !bit;
-    b = !(symbol & (1<<1));
+    b = !(symbol & (2/*1<<1*/));
     bit = cavs_biari_decode_symbol(&p->cabac, ctx + a + 2*b);
     symbol |= (bit<<3);
 
@@ -1106,7 +1106,7 @@ int cavs_cabac_get_cbp(cavs_decoder *p)
     {
         bit = cavs_biari_decode_symbol(&p->cabac, ctx + 1);
         if (bit)
-            symbol |= (3<<4);
+            symbol |= (48/*3<<4*/);
         else
         {
             bit = cavs_biari_decode_symbol(&p->cabac, ctx + 1);

@@ -7151,7 +7151,7 @@ void cavs_decoder_init( cavs_decoder *p )
 
      /* asm */
      /* put qpel 16 */
-     if( p->cpu & CAVS_CPU_MMXEXT )
+     //if( p->cpu & CAVS_CPU_MMXEXT )
      {
         p->put_cavs_qpel_pixels_tab[0][0] =  ff_put_bavs_qpel16_mc00_mmxext;
         p->put_cavs_qpel_pixels_tab[0][ 2] = ff_put_cavs_qpel16_mc20_mmxext;
@@ -7180,7 +7180,7 @@ void cavs_decoder_init( cavs_decoder *p )
      }
      
      /* put qpel 8 */
-     if( p->cpu & CAVS_CPU_MMXEXT )
+     //if( p->cpu & CAVS_CPU_MMXEXT )
      {
     	 p->put_cavs_qpel_pixels_tab[1][ 0] = ff_put_bavs_qpel8_mc00_mmxext;
     	 p->put_cavs_qpel_pixels_tab[1][ 2] =  ff_put_cavs_qpel8_mc20_mmxext;
@@ -7209,7 +7209,7 @@ void cavs_decoder_init( cavs_decoder *p )
      }
 
      /* avg qpel 16 */
-     if( p->cpu & CAVS_CPU_MMXEXT )
+     //if( p->cpu & CAVS_CPU_MMXEXT )
      {
     	p->avg_cavs_qpel_pixels_tab[0][ 0] =  ff_avg_bavs_qpel16_mc00_mmxext;
     	p->avg_cavs_qpel_pixels_tab[0][ 2] =  ff_avg_cavs_qpel16_mc20_mmxext;
@@ -7236,7 +7236,7 @@ void cavs_decoder_init( cavs_decoder *p )
      }
 
      /* avg qpel 8 */
-     if( p->cpu & CAVS_CPU_MMXEXT )
+     //if( p->cpu & CAVS_CPU_MMXEXT )
      {
         p->avg_cavs_qpel_pixels_tab[1][ 0] = ff_avg_bavs_qpel8_mc00_mmxext;
         p->avg_cavs_qpel_pixels_tab[1][ 2] =  ff_avg_cavs_qpel8_mc20_mmxext;
