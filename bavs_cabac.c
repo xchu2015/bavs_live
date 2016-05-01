@@ -65,6 +65,293 @@ static const uint8_t mb_type_b_to_golomb[3][9] = {
 
 #endif
 
+#define cavs_biari_decode_symbolDF(cb, bi_ct,bit){ \
+	unsigned char cycno = (bi_ct)->cycno; \
+	unsigned char cwr = cwr_trans[cycno]; \
+	bit = (bi_ct)->mps; \
+	unsigned short lg_pmps = (bi_ct)->lg_pmps; \
+	unsigned short t_rlps = lg_pmps >> 2; \
+	unsigned short s2 = (cb)->s1; \
+	int16_t t1_d = (cb)->t1 - t_rlps; \
+	unsigned short t2 = (uint8_t)t1_d; \
+	if (t1_d<0){ \
+		s2++; \
+		t_rlps += (cb)->t1; \
+	} \
+	if (s2 < (cb)->value_s || (s2 == (cb)->value_s && (cb)->value_t < t2)){ \
+		(cb)->s1 = s2; \
+		(cb)->t1 = t2; \
+		(bi_ct)->cycno = cycno_trans1[cycno]; \
+		(bi_ct)->lg_pmps = lg_pmps_tab_mps[cwr][lg_pmps]; \
+	} \
+	else{ \
+		bit ^= 0x01; \
+		if (s2 == (cb)->value_s) (cb)->value_t = ((cb)->value_t - t2); \
+		else{ \
+			if (--(cb)->bits_to_go < 0) get_byte(); \
+			(cb)->value_t = (((cb)->value_t << 1) | (((cb)->buffer >> (cb)->bits_to_go) & 0x01)) + 256 - t2; \
+		} \
+		int wn = log2_tab[t_rlps]; \
+		uint8_t rsd = (uint8_t)(((cb)->buffer << (8 - (cb)->bits_to_go)) | (*((cb)->bs.p) >> ((cb)->bits_to_go))) >> (8 - wn); \
+		(cb)->value_t = ((cb)->value_t << wn) | rsd; \
+		(cb)->bits_to_go -= wn; \
+		if ((cb)->bits_to_go < 0){ \
+			(cb)->buffer = *((cb)->bs.p++); \
+			(cb)->bits_to_go += 8; \
+		} \
+		(cb)->s1 = 0; \
+		(cb)->t1 = (uint8_t)(t_rlps << wn); \
+		(cb)->value_s = 0; \
+		while (!(cb)->value_t){ \
+			if (--(cb)->bits_to_go < 0) get_byte(); \
+			(cb)->value_t = ((cb)->value_t << 1) | (((cb)->buffer >> (cb)->bits_to_go) & 0x01); \
+			(cb)->value_s++; \
+		} \
+		if ((cb)->value_t < QUARTER){ \
+			int wn = log2_tab[(cb)->value_t]; \
+			uint8_t rsd = ((cb)->buffer << (8 - (cb)->bits_to_go)) | (*((cb)->bs.p) >> ((cb)->bits_to_go)); \
+			(cb)->value_t = ((cb)->value_t << wn) | (rsd >> (8 - wn)); \
+			(cb)->value_s += wn; \
+			(cb)->bits_to_go -= wn; \
+			if ((cb)->bits_to_go < 0){ \
+				(cb)->buffer = *((cb)->bs.p++); \
+				(cb)->bits_to_go += 8; \
+			} \
+		} \
+		(cb)->value_t = (uint8_t)(cb)->value_t; \
+		(bi_ct)->cycno = cycno_trans2[cycno]; \
+		lg_pmps = lg_pmps_tab[cwr][lg_pmps]; \
+		if (lg_pmps >= 1024){ \
+			lg_pmps = 2047 - lg_pmps; \
+			(bi_ct)->mps = bit; \
+		} \
+		(bi_ct)->lg_pmps = lg_pmps; \
+	} \
+}
+
+#define cavs_biari_decode_symbol_bypassDF(cb,bit){ \
+	unsigned short t_rlps = 255; \
+	unsigned short s2 = (cb)->s1; \
+	int16_t t1_d = (cb)->t1 - t_rlps; \
+	unsigned short t2 = (uint8_t)t1_d; \
+	if (t1_d<0){ \
+		s2++; \
+		t_rlps += (cb)->t1; \
+	} \
+	if (s2 < (cb)->value_s || (s2 == (cb)->value_s && (cb)->value_t < t2)){ \
+		(cb)->s1 = s2; \
+		(cb)->t1 = t2; \
+		bit = 0; \
+	} \
+	else{ \
+		if (s2 == (cb)->value_s) (cb)->value_t = ((cb)->value_t - t2); \
+		else{ \
+			if (--(cb)->bits_to_go < 0) get_byte(); \
+			(cb)->value_t = (((cb)->value_t << 1) | (((cb)->buffer >> (cb)->bits_to_go) & 0x01)) + 256 - t2; \
+		} \
+		if (t_rlps < QUARTER){ \
+			t_rlps <<= 1; \
+			if (--(cb)->bits_to_go < 0) get_byte(); \
+			(cb)->value_t = ((cb)->value_t << 1) | (((cb)->buffer >> (cb)->bits_to_go) & 0x01); \
+		} \
+		(cb)->s1 = 0; \
+		(cb)->t1 = (uint8_t)t_rlps; \
+		(cb)->value_s = 0; \
+		while (!(cb)->value_t){ \
+			if (--(cb)->bits_to_go < 0) get_byte(); \
+			(cb)->value_t = ((cb)->value_t << 1) | (((cb)->buffer >> (cb)->bits_to_go) & 0x01); \
+			(cb)->value_s++; \
+		} \
+		if ((cb)->value_t < QUARTER){ \
+			int wn = log2_tab[(cb)->value_t]; \
+			uint8_t rsd = ((cb)->buffer << (8 - (cb)->bits_to_go)) | (*((cb)->bs.p) >> ((cb)->bits_to_go)); \
+			(cb)->value_t = ((cb)->value_t << wn) | (rsd >> (8 - wn)); \
+			(cb)->value_s += wn; \
+			(cb)->bits_to_go -= wn; \
+			if ((cb)->bits_to_go < 0){ \
+				(cb)->buffer = *((cb)->bs.p++); \
+				(cb)->bits_to_go += 8; \
+			} \
+		} \
+		(cb)->value_t = (uint8_t)(cb)->value_t; \
+		bit = 1; \
+	} \
+}
+
+#define cavs_biari_decode_symbol_wDF(cb, bi_ct1, bi_ct2, bit){ \
+	uint8_t bit1, bit2; \
+	uint16_t lg_pmps; \
+	uint8_t cwr1, cycno1 = (bi_ct1)->cycno; \
+	uint8_t cwr2, cycno2 = (bi_ct2)->cycno; \
+	uint16_t lg_pmps1 = (bi_ct1)->lg_pmps, lg_pmps2 = (bi_ct2)->lg_pmps; \
+	uint16_t t_rlps; \
+	uint32_t s2 = (cb)->s1, t2; \
+	int32_t t1_d; \
+	bit1 = (bi_ct1)->mps; \
+	bit2 = (bi_ct2)->mps; \
+	cwr1 = cwr_trans[cycno1]; \
+	cwr2 = cwr_trans[cycno2]; \
+	if (bit1 == bit2) { \
+		bit = bit1; \
+		lg_pmps = (lg_pmps1 + lg_pmps2) >> 1; \
+	}else { \
+		if (lg_pmps1<lg_pmps2) { \
+			bit = bit1; \
+			lg_pmps = 1023 - ((lg_pmps2 - lg_pmps1) >> 1); \
+		}else { \
+			bit = bit2; \
+			lg_pmps = 1023 - ((lg_pmps1 - lg_pmps2) >> 1); \
+		} \
+	} \
+	t_rlps = lg_pmps >> 2; \
+	t1_d = (cb)->t1 - t_rlps; \
+	t2 = (uint8_t)t1_d; \
+	if (t1_d<0){ \
+		s2++; \
+		t_rlps += (cb)->t1; \
+	} \
+	if (s2 < (cb)->value_s || (s2 == (cb)->value_s && (cb)->value_t < t2)){ \
+		(cb)->s1 = s2; \
+		(cb)->t1 = t2; \
+	} \
+	else{ \
+		bit ^= 0x01; \
+		if (s2 == (cb)->value_s) (cb)->value_t = ((cb)->value_t - t2); \
+		else{ \
+			if (--(cb)->bits_to_go < 0) get_byte(); \
+			(cb)->value_t = ((cb)->value_t << 1) | (((cb)->buffer >> (cb)->bits_to_go) & 0x01); \
+			(cb)->value_t = 256 + (cb)->value_t - t2; \
+		} \
+		int wn = log2_tab[t_rlps]; \
+		uint8_t rsd = (uint8_t)(((cb)->buffer << (8 - (cb)->bits_to_go)) | (*((cb)->bs.p) >> ((cb)->bits_to_go))) >> (8 - wn); \
+		(cb)->value_t = ((cb)->value_t << wn) | rsd; \
+		(cb)->bits_to_go -= wn; \
+		if ((cb)->bits_to_go < 0){ \
+			(cb)->buffer = *((cb)->bs.p++); \
+			(cb)->bits_to_go += 8; \
+		} \
+		(cb)->s1 = 0; \
+		(cb)->t1 = (uint8_t)(t_rlps << wn); \
+		(cb)->value_s = 0; \
+		while (!(cb)->value_t){ \
+			if (--(cb)->bits_to_go < 0) get_byte(); \
+			(cb)->value_t = ((cb)->value_t << 1) | (((cb)->buffer >> (cb)->bits_to_go) & 0x01); \
+			(cb)->value_s++; \
+		} \
+		if ((cb)->value_t < QUARTER){ \
+			int wn = log2_tab[(cb)->value_t]; \
+			uint8_t rsd = ((cb)->buffer << (8 - (cb)->bits_to_go)) | (*((cb)->bs.p) >> ((cb)->bits_to_go)); \
+			(cb)->value_t = ((cb)->value_t << wn) | (rsd >> (8 - wn)); \
+			(cb)->value_s += wn; \
+			(cb)->bits_to_go -= wn; \
+			if ((cb)->bits_to_go < 0){ \
+				(cb)->buffer = *((cb)->bs.p++); \
+				(cb)->bits_to_go += 8; \
+			} \
+		} \
+		(cb)->value_t = (uint8_t)(cb)->value_t; \
+	} \
+	if (bit == bit1){ \
+		(bi_ct1)->cycno = cycno_trans_2d[0][cycno1]; \
+		lg_pmps1 = lg_pmps_tab_mps[cwr1][lg_pmps1]; \
+	} \
+	else{ \
+		(bi_ct1)->cycno = cycno_trans_2d[1][cycno1]; \
+		lg_pmps1 = lg_pmps_tab[cwr1][lg_pmps1]; \
+		if (lg_pmps1 >= 1024){ \
+			lg_pmps1 = 2047 - lg_pmps1; \
+			(bi_ct1)->mps = bit; \
+		} \
+	} \
+	(bi_ct1)->lg_pmps = lg_pmps1; \
+	if (bit == bit2){ \
+		(bi_ct2)->cycno = cycno_trans_2d[0][cycno2]; \
+		lg_pmps2 = lg_pmps_tab_mps[cwr2][lg_pmps2]; \
+	} \
+	else{ \
+		(bi_ct2)->cycno = cycno_trans_2d[1][cycno2]; \
+		lg_pmps2 = lg_pmps_tab[cwr2][lg_pmps2]; \
+		if (lg_pmps2 >= 1024){ \
+			lg_pmps2 = 2047 - lg_pmps2; \
+			(bi_ct2)->mps = bit; \
+		} \
+	} \
+	(bi_ct2)->lg_pmps = lg_pmps2; \
+}
+
+#define cavs_biari_decode_symbol_nwDF(cb, bi_ct, bit){ \
+	unsigned char cycno = (bi_ct)->cycno; \
+	unsigned char cwr = cwr_trans[cycno]; \
+	bit = 0; \
+	unsigned short lg_pmps = (bi_ct)->lg_pmps; \
+	unsigned short t_rlps = lg_pmps >> 2; \
+	unsigned short s2 = (cb)->s1; \
+	unsigned char tmp; \
+	int16_t t1_d = (cb)->t1 - t_rlps; \
+	unsigned char /*short*/ t2 = /*(uint8_t)*/t1_d; \
+	if (t1_d<0) s2++; \
+	if (s2 < (cb)->value_s || (s2 == (cb)->value_s && (cb)->value_t < t2)){ \
+		bit++; \
+		lg_pmps = lg_pmps_tab_mps[cwr][lg_pmps]; \
+		t_rlps = lg_pmps >> 2; \
+		cycno = cycno_trans1[cycno]; \
+		cwr = cwr_trans[cycno]; \
+		t1_d = t2/*(cb)->t1*/ - t_rlps; \
+		if (t1_d<0) s2++; \
+		t2 = (uint8_t)t1_d; \
+	} \
+	tmp = cwr + 3; \
+	while (s2 < (cb)->value_s || (s2 == (cb)->value_s && (cb)->value_t < t2)){ \
+		bit++; \
+		lg_pmps -= ((lg_pmps >> tmp) + (t_rlps >> tmp)); \
+		t_rlps = lg_pmps >> 2; \
+		t1_d = t2/*(cb)->t1*/ - t_rlps; \
+		if (t1_d<0) s2++; \
+		t2 = (uint8_t)t1_d; \
+	} \
+	if (t1_d<0) t_rlps += (t1_d + t_rlps); \
+	if (s2 == (cb)->value_s) (cb)->value_t -= t2; \
+	else{ \
+		if (--(cb)->bits_to_go < 0) get_byte(); \
+		(cb)->value_t = (((cb)->value_t << 1) | (((cb)->buffer >> (cb)->bits_to_go) & 0x01)) + 256 - t2; \
+	} \
+	int wn = log2_tab[t_rlps]; \
+	uint8_t rsd = (uint8_t)(((cb)->buffer << (8 - (cb)->bits_to_go)) | (*((cb)->bs.p) >> ((cb)->bits_to_go))) >> (8 - wn); \
+	(cb)->value_t = ((cb)->value_t << wn) | rsd; \
+	(cb)->bits_to_go -= wn; \
+	if ((cb)->bits_to_go < 0){ \
+		(cb)->buffer = *((cb)->bs.p++); \
+		(cb)->bits_to_go += 8; \
+	} \
+	(cb)->s1 = 0; \
+	(cb)->t1 = (uint8_t)(t_rlps << wn); \
+	(cb)->value_s = 0; \
+	while (!(cb)->value_t){ \
+		if (--(cb)->bits_to_go < 0) get_byte(); \
+		(cb)->value_t = ((cb)->value_t << 1) | (((cb)->buffer >> (cb)->bits_to_go) & 0x01); \
+		(cb)->value_s++; \
+	} \
+	if ((cb)->value_t < QUARTER){ \
+		int wn = log2_tab[(cb)->value_t]; \
+		uint8_t rsd = ((cb)->buffer << (8 - (cb)->bits_to_go)) | (*((cb)->bs.p) >> ((cb)->bits_to_go)); \
+		(cb)->value_t = ((cb)->value_t << wn) | (rsd >> (8 - wn)); \
+		(cb)->value_s += wn; \
+		(cb)->bits_to_go -= wn; \
+		if ((cb)->bits_to_go < 0){ \
+			(cb)->buffer = *((cb)->bs.p++); \
+			(cb)->bits_to_go += 8; \
+		} \
+	} \
+	(cb)->value_t = (uint8_t)(cb)->value_t; \
+	(bi_ct)->cycno = cycno_trans2[cycno]; \
+	lg_pmps = lg_pmps_tab[cwr][lg_pmps]; \
+	if (lg_pmps >= 1024){ \
+		lg_pmps = 2047 - lg_pmps; \
+		(bi_ct)->mps = !((bi_ct)->mps); \
+	} \
+	(bi_ct)->lg_pmps = lg_pmps; \
+}
+
 void biari_init_context_logac (bi_ctx_t* ctx)
 {
 	ctx->lg_pmps = (QUARTER<<LG_PMPS_SHIFTNO)-1; //10 bits precision
@@ -1418,6 +1705,7 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     bi_ctx_t *p_ctx2;
     int ctx, ctx2, offset;
 	int i_ret = 0;
+	unsigned int bit;
 
 	cavs_cabac_t *cb = &(p->cabac);
     if( !b_chroma ){
@@ -1436,6 +1724,228 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
     
     //! Decode 
     rank = 0; pos = 0;
+	////**********************************************************************************/
+	p_ctx = primary[0/*rank*/];
+	//! Level
+	ctx = 1; symbol = 0;
+	cavs_biari_decode_symbolDF(cb, p_ctx + ctx, bit);
+	if (bit == 0){
+	//if (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx) == 0){
+		++symbol; ++ctx;
+		cavs_biari_decode_symbolDF(cb, p_ctx + ctx, bit);
+		while (bit==0){
+		//while (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx) == 0) {
+			//++symbol; ++ctx; if (ctx >= 2) ctx = 2;
+			if (++symbol > (32768/*1<<15*/)) /* remove endless loop */{
+				p->b_error_flag = 1;
+				return -1;
+			}
+			cavs_biari_decode_symbolDF(cb, p_ctx + ctx, bit);
+		}
+	}
+	abslevel = symbol + 1;
+	//! Sign
+	cavs_biari_decode_symbol_bypassDF(cb, bit);
+	if (bit)
+	//if (cavs_biari_decode_symbol_bypass(cb/*&p->cabac*/))
+		level = -abslevel;
+	else
+		level = abslevel;
+	//! Run
+	if (abslevel == 1) offset = 4;
+	else offset = 6;
+	symbol = 0; ctx = 0;
+	cavs_biari_decode_symbolDF(cb, p_ctx + offset, bit);
+	if (bit==0){
+	//if (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx /*+ ctx*/ + offset) == 0){
+		++symbol; ++ctx;
+		if ((p_ctx + ctx + offset)->mps == 0){
+			cavs_biari_decode_symbol_nwDF(cb, p_ctx + ctx + offset,bit);
+			symbol += bit;
+			//symbol += cavs_biari_decode_symbol_nw(cb/*&p->cabac*/, p_ctx + ctx + offset);
+			if (symbol > 63)	/* remove endless loop */{
+				p->b_error_flag = 1;
+				return -1;
+			}
+		}
+		else{
+			cavs_biari_decode_symbolDF(cb, p_ctx + ctx + offset, bit);
+			while (bit==0){
+			//while (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx + offset) == 0) {
+				//++symbol; //if (ctx >= 1) ctx = 1;
+				if (++symbol > 63)	/* remove endless loop */{
+					p->b_error_flag = 1;
+					return -1;
+				}
+				cavs_biari_decode_symbolDF(cb, p_ctx + ctx + offset, bit);
+			}
+		}
+	}
+	level_buf[0] = level;
+	run_buf[0] = ++symbol; // run + 1;
+	/*if (abslevel>t_chr[rank])*/ {
+		if (abslevel <= 2)	rank = abslevel;
+		else if (abslevel <= 4) rank = 3;
+		else rank = 4;
+	}
+	pos += symbol; // (run + 1);
+	if (pos >= 64) pos = 63;
+	////**********************************************************************************/
+    for( pairs=1/*0*/; pairs<65; pairs++ ) {
+    	p_ctx = primary[rank];
+    	//! EOB
+    	//if( rank/*>0*/) 
+		{
+    		p_ctx2 = primary[5+(pos>>5)];
+    		ctx2 = (pos>>1)&0x0f;
+#if 1
+             /* note : can't cross border of array */
+             /*if( pos < 0 || pos > 63 ){
+                printf("[error]MB coeffs over border\n");
+                return -1;   
+             }*/
+#endif              
+    		//ctx = 0;
+#if 0    		
+			if( cavs_biari_decode_symbol_w(&p->cabac, p_ctx+ctx, p_ctx2+ctx2) )
+    			break;
+#else
+			//i_ret = cavs_biari_decode_symbol_w(cb/*&p->cabac*/, p_ctx/*+ctx*/, p_ctx2+ctx2);
+			cavs_biari_decode_symbol_wDF(cb, p_ctx, p_ctx2 + ctx2,i_ret);
+			if( i_ret == -1){
+				p->b_error_flag = 1;
+				return -1;
+			}else if(i_ret!= 0 ){
+				break;
+			}
+#endif
+    	}
+    	//! Level
+		ctx = 1; symbol = 0; offset = 4;
+		cavs_biari_decode_symbolDF(cb, p_ctx + ctx,bit);
+		if (bit==0){
+		//if (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx) == 0){
+			++symbol; ++ctx; offset = 6;
+			//if ((p_ctx + ctx)->mps == 0){
+			//	symbol += cavs_biari_decode_symbol_nw(cb/*&p->cabac*/, p_ctx + ctx);
+			//	if (symbol > (32768/*1<<15*/)) /* remove endless loop */{
+			//		p->b_error_flag = 1;
+			//		return -1;
+			//	}
+			//}
+			//else
+			{
+				cavs_biari_decode_symbolDF(cb, p_ctx + ctx, bit);
+				while (bit==0){
+				//while (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx) == 0) {
+					//++symbol; ++ctx; if (ctx >= 2) ctx = 2;
+					if (++symbol > (32768/*1<<15*/)) /* remove endless loop */{
+						p->b_error_flag = 1;
+						return -1;
+					}
+					cavs_biari_decode_symbolDF(cb, p_ctx + ctx, bit);
+				}
+			}
+		}
+    	abslevel = symbol + 1;
+    	//! Sign
+		cavs_biari_decode_symbol_bypassDF(cb, bit);
+		if (bit)
+    	//if( cavs_biari_decode_symbol_bypass(cb/*&p->cabac*/) )
+    		level = - abslevel;	
+    	else
+    		level = abslevel;
+
+    	//! Run
+    	//if( abslevel==1 ) offset = 4;
+    	//else offset = 6;
+
+    	symbol = 0; ctx = 0;
+		cavs_biari_decode_symbolDF(cb, p_ctx + ctx + offset,bit);
+		if (bit==0){
+		//if (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx + offset) == 0){
+			++symbol; ++ctx;
+			if ((p_ctx + ctx + offset)->mps == 0){
+				cavs_biari_decode_symbol_nwDF(cb, p_ctx + ctx + offset,bit);
+				symbol += bit;
+				//symbol += cavs_biari_decode_symbol_nw(cb/*&p->cabac*/, p_ctx + ctx + offset);
+				if (symbol > 63)	/* remove endless loop */{
+					p->b_error_flag = 1;
+					return -1;
+				}
+			}
+			else{
+				cavs_biari_decode_symbolDF(cb, p_ctx + ctx + offset,bit);
+				while (bit==0){
+				//while (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx + offset) == 0) {
+					//++symbol; //if (ctx >= 1) ctx = 1;
+					if (++symbol > 63)	/* remove endless loop */{
+						p->b_error_flag = 1;
+						return -1;
+					}
+					cavs_biari_decode_symbolDF(cb, p_ctx + ctx + offset, bit);
+				}
+			}
+		}
+    	//run = symbol;
+
+    	level_buf[pairs] = level;
+		run_buf[pairs] = ++symbol; // run + 1;
+#if CAVS_TRACE
+    	fprintf(trace_fp,"level\t\t\t%d\n",level);
+    	fprintf(trace_fp,"run  \t\t\t%d\n",run/*, p->cabac.buffer, p->cabac.bits_to_go*/);
+    	fflush(trace_fp);
+#endif
+    	if( rank<4 && abslevel>t_chr[rank] ) {
+    		if( abslevel <= 2 )	rank = abslevel;
+    		else if( abslevel<=4 ) rank = 3;
+    		else rank = 4;
+    	}
+		pos += symbol; // (run + 1);
+		if (pos >= 64) pos = 63;
+    }
+
+    p->b_error_flag = (cb/*&(p->cabac)*/)->b_cabac_error;
+    if( p->b_error_flag ){
+    	printf("[error]MB coeffs of AEC is wrong\n");
+    } 
+    return pairs;
+}
+
+int cavs_cabac_get_coeffs_bak(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_escape_order, int b_chroma)
+{
+	uint8_t rank, pos;
+	int pairs/*, rank, pos*/;
+	int /*run,*/level, abslevel, symbol;
+	int *run_buf = p->run_buf, *level_buf = p->level_buf;
+
+	/* read coefficients for whole block */
+	bi_ctx_t(*primary)[NUM_MAP_CTX];
+	bi_ctx_t *p_ctx;
+	bi_ctx_t *p_ctx2;
+	int ctx, ctx2, offset;
+	int i_ret = 0;
+
+	cavs_cabac_t *cb = &(p->cabac);
+	if (!b_chroma){
+		if (p->ph.b_picture_structure == 0){
+			primary = p->cabac.fld_map_contexts;
+		}
+		else{
+			primary = p->cabac.map_contexts;
+		}
+	}
+	else {
+		if (p->ph.b_picture_structure == 0){
+			primary = p->cabac.fld_last_contexts;
+		}
+		else{
+			primary = p->cabac.last_contexts;
+		}
+	}
+
+	//! Decode 
+	rank = 0; pos = 0;
 	////**********************************************************************************/
 	p_ctx = primary[0/*rank*/];
 	//! Level
@@ -1489,35 +1999,36 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
 	pos += symbol; // (run + 1);
 	if (pos >= 64) pos = 63;
 	////**********************************************************************************/
-    for( pairs=1/*0*/; pairs<65; pairs++ ) {
-    	p_ctx = primary[rank];
-    	//! EOB
-    	//if( rank/*>0*/) 
+	for (pairs = 1/*0*/; pairs<65; pairs++) {
+		p_ctx = primary[rank];
+		//! EOB
+		//if( rank/*>0*/) 
 		{
-    		p_ctx2 = primary[5+(pos>>5)];
-    		ctx2 = (pos>>1)&0x0f;
+			p_ctx2 = primary[5 + (pos >> 5)];
+			ctx2 = (pos >> 1) & 0x0f;
 #if 1
-             /* note : can't cross border of array */
-             /*if( pos < 0 || pos > 63 ){
-                printf("[error]MB coeffs over border\n");
-                return -1;   
-             }*/
+			/* note : can't cross border of array */
+			/*if( pos < 0 || pos > 63 ){
+			printf("[error]MB coeffs over border\n");
+			return -1;
+			}*/
 #endif              
-    		//ctx = 0;
+			//ctx = 0;
 #if 0    		
-			if( cavs_biari_decode_symbol_w(&p->cabac, p_ctx+ctx, p_ctx2+ctx2) )
-    			break;
+			if (cavs_biari_decode_symbol_w(&p->cabac, p_ctx + ctx, p_ctx2 + ctx2))
+				break;
 #else
-			i_ret = cavs_biari_decode_symbol_w(cb/*&p->cabac*/, p_ctx/*+ctx*/, p_ctx2+ctx2);
-			if( i_ret == -1){
+			i_ret = cavs_biari_decode_symbol_w(cb/*&p->cabac*/, p_ctx/*+ctx*/, p_ctx2 + ctx2);
+			if (i_ret == -1){
 				p->b_error_flag = 1;
 				return -1;
-			}else if(i_ret!= 0 ){
+			}
+			else if (i_ret != 0){
 				break;
 			}
 #endif
-    	}
-    	//! Level
+		}
+		//! Level
 		ctx = 1; symbol = 0; offset = 4;
 		if (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx) == 0){
 			++symbol; ++ctx; offset = 6;
@@ -1539,18 +2050,18 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
 				}
 			}
 		}
-    	abslevel = symbol + 1;
-    	//! Sign
-    	if( cavs_biari_decode_symbol_bypass(cb/*&p->cabac*/) )
-    		level = - abslevel;	
-    	else
-    		level = abslevel;
+		abslevel = symbol + 1;
+		//! Sign
+		if (cavs_biari_decode_symbol_bypass(cb/*&p->cabac*/))
+			level = -abslevel;
+		else
+			level = abslevel;
 
-    	//! Run
-    	//if( abslevel==1 ) offset = 4;
-    	//else offset = 6;
+		//! Run
+		//if( abslevel==1 ) offset = 4;
+		//else offset = 6;
 
-    	symbol = 0; ctx = 0;
+		symbol = 0; ctx = 0;
 		if (cavs_biari_decode_symbol(cb/*&p->cabac*/, p_ctx + ctx + offset) == 0){
 			++symbol; ++ctx;
 			if ((p_ctx + ctx + offset)->mps == 0){
@@ -1570,29 +2081,29 @@ int cavs_cabac_get_coeffs(cavs_decoder *p, const xavs_vlc *p_vlc_table, int i_es
 				}
 			}
 		}
-    	//run = symbol;
+		//run = symbol;
 
-    	level_buf[pairs] = level;
+		level_buf[pairs] = level;
 		run_buf[pairs] = ++symbol; // run + 1;
 #if CAVS_TRACE
-    	fprintf(trace_fp,"level\t\t\t%d\n",level);
-    	fprintf(trace_fp,"run  \t\t\t%d\n",run/*, p->cabac.buffer, p->cabac.bits_to_go*/);
-    	fflush(trace_fp);
+		fprintf(trace_fp, "level\t\t\t%d\n", level);
+		fprintf(trace_fp, "run  \t\t\t%d\n", run/*, p->cabac.buffer, p->cabac.bits_to_go*/);
+		fflush(trace_fp);
 #endif
-    	if( rank<4 && abslevel>t_chr[rank] ) {
-    		if( abslevel <= 2 )	rank = abslevel;
-    		else if( abslevel<=4 ) rank = 3;
-    		else rank = 4;
-    	}
+		if (rank<4 && abslevel>t_chr[rank]) {
+			if (abslevel <= 2)	rank = abslevel;
+			else if (abslevel <= 4) rank = 3;
+			else rank = 4;
+		}
 		pos += symbol; // (run + 1);
 		if (pos >= 64) pos = 63;
-    }
+	}
 
-    p->b_error_flag = (cb/*&(p->cabac)*/)->b_cabac_error;
-    if( p->b_error_flag ){
-    	printf("[error]MB coeffs of AEC is wrong\n");
-    } 
-    return pairs;
+	p->b_error_flag = (cb/*&(p->cabac)*/)->b_cabac_error;
+	if (p->b_error_flag){
+		printf("[error]MB coeffs of AEC is wrong\n");
+	}
+	return pairs;
 }
 
 #if B_MB_WEIGHTING
