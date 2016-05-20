@@ -236,7 +236,7 @@ void CheckType(InputStream* p, int startcode)
     }
 }
 
-unsigned int cavs_get_one_nal (InputStream* p, unsigned char *buf, int *length)
+unsigned int cavs_get_one_nal (InputStream* p, unsigned char *buf, int *length, int buf_len)
 {
     InputStream* pIRABS = p;
     int i,k, j = 0;
@@ -285,6 +285,7 @@ unsigned int cavs_get_one_nal (InputStream* p, unsigned char *buf, int *length)
     {
     	i = read_n_bit(pIRABS,8,&j);
     	if(i<0) break;
+		if (k >= buf_len) return -1; //bitstream error, exceed buffer limit
     	buf[k++] = /*(char)*/j;
     }
     if(pIRABS->iClearBitsNum>0)
@@ -293,8 +294,10 @@ unsigned int cavs_get_one_nal (InputStream* p, unsigned char *buf, int *length)
     	shift = 8 - pIRABS->iClearBitsNum;
     	i = read_n_bit(pIRABS,pIRABS->iClearBitsNum,&j);
 
-    	if(j!=0)   
-    		buf[k++] = /*(char)*/(j<<shift);
+		if (j != 0){
+			if (k >= buf_len) return -1; //bitstream error, exceed buffer limit
+			buf[k++] = /*(char)*/(j << shift);
+		}
     }
     *length = k;
     

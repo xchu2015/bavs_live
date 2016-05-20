@@ -7631,7 +7631,7 @@ uint32_t cavs_frame_pack( InputStream*p, frame_pack *frame )
     while(i_startcode)
     {  
         cavs_bitstream_save( frame, p );
-        i_startcode = cavs_get_one_nal( p, p->m_buf, &i_len );
+		i_startcode = cavs_get_one_nal(p, p->m_buf, &i_len, MAX_CODED_FRAME_SIZE);
 
         switch( i_startcode )
         {	
@@ -7665,6 +7665,11 @@ uint32_t cavs_frame_pack( InputStream*p, frame_pack *frame )
                 //cavs_free(m_buf);
                 return i_startcode;
                 break;
+			case -1:
+				frame->p_cur = frame->p_start;
+				frame->i_len = 0;
+				frame->slice_num = 0;
+				break;
             default:
                 memcpy(frame->p_cur, p->m_buf, i_len ); /* pack slice into one frame */
 
@@ -9105,7 +9110,7 @@ uint32_t cavs_topfield_pack( InputStream*p, frame_pack *field )
     while( i_startcode )
     {  
         cavs_bitstream_save( field, p );
-		i_startcode = cavs_get_one_nal(p, /*field->p_cur*/p->m_buf, &i_len);
+		i_startcode = cavs_get_one_nal(p, /*field->p_cur*/p->m_buf, &i_len, (MAX_CODED_FRAME_SIZE/2));
 
         if( ((i_startcode & 0xff) > (uint32_t)field->i_mb_end[0])
 			&& i_startcode != XAVS_USER_DATA_CODE
@@ -9140,6 +9145,11 @@ uint32_t cavs_topfield_pack( InputStream*p, frame_pack *field )
                 break;
             case XAVS_EXTENSION_START_CODE:
                 break;
+			case -1:
+				field->p_cur = field->p_start;
+				field->i_len = 0;
+				field->slice_num = 0;
+				break;
             default:
                 memcpy(field->p_cur, p->m_buf, i_len ); /* pack slice into one frame */
 
@@ -9556,7 +9566,7 @@ uint32_t cavs_botfield_pack( InputStream*p, frame_pack *field )
     while( i_startcode )
     {  
         cavs_bitstream_save( field, p );
-        i_startcode = cavs_get_one_nal( p, p->m_buf, &i_len );
+		i_startcode = cavs_get_one_nal(p, p->m_buf, &i_len, (MAX_CODED_FRAME_SIZE/2));
 
         switch( i_startcode )
         {	
@@ -9590,6 +9600,11 @@ uint32_t cavs_botfield_pack( InputStream*p, frame_pack *field )
                 //cavs_free(m_buf);
                 return i_startcode;
                 break;
+			case -1:
+				field->p_cur = field->p_start;
+				field->i_len = 0;
+				field->slice_num = 0;
+				break;
             default:
                 memcpy(field->p_cur, p->m_buf, i_len ); /* pack slice into one frame */
 
@@ -9969,7 +9984,7 @@ uint32_t cavs_field_pack( InputStream*p, frame_pack *field )
     while( i_startcode )
     {  
         cavs_bitstream_save( field, p );
-        i_startcode = cavs_get_one_nal( p, p->m_buf, &i_len );	 
+		i_startcode = cavs_get_one_nal(p, p->m_buf, &i_len, MAX_CODED_FRAME_SIZE);
 		
         switch( i_startcode )
         {	
@@ -10003,6 +10018,11 @@ uint32_t cavs_field_pack( InputStream*p, frame_pack *field )
                 //cavs_free(m_buf);
                 return i_startcode;
                 break;
+			case -1:
+				field->p_cur = field->p_start;
+				field->i_len = 0;
+				field->slice_num = 0;
+				break;
             default:
 				if( i_startcode == pre_startcode ) /* NOTE : repeat slice should discard */
 					break;
@@ -12133,7 +12153,7 @@ int cavs_decoder_get_one_nal( void *p_decoder, unsigned char *buf, int *length )
     cavs_decoder *p = (cavs_decoder *)p_decoder;
     int i_ret;
     
-    i_ret = cavs_get_one_nal( p->p_stream, buf, length );
+	i_ret = cavs_get_one_nal(p->p_stream, buf, length, MAX_CODED_FRAME_SIZE);
 
     return i_ret;
 }

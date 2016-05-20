@@ -41,7 +41,7 @@ typedef struct {
 } InputStream;
 
 int cavs_init_bitstream( InputStream *p , unsigned char *rawstream, unsigned int i_len );
-unsigned int cavs_get_one_nal ( InputStream* p, unsigned char *buf, int *length );
+unsigned int cavs_get_one_nal ( InputStream* p, unsigned char *buf, int *length, int buf_len);
 
 #endif
 
