@@ -7613,7 +7613,7 @@ Call:
 */
 uint32_t cavs_frame_pack( InputStream*p, frame_pack *frame )
 {
-    uint32_t i_startcode;
+    //uint32_t i_startcode;
 
     int i_len;
     /*unsigned char *m_buf;
@@ -7626,12 +7626,12 @@ uint32_t cavs_frame_pack( InputStream*p, frame_pack *frame )
     memset(m_buf, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));*/
 
     /* pic header */
-    i_startcode = frame->slice[0].i_startcode ;
+	uint32_t i_startcode = frame->slice[0].i_startcode;
 	
     while(i_startcode)
     {  
         cavs_bitstream_save( frame, p );
-		i_startcode = cavs_get_one_nal(p, p->m_buf, &i_len, MAX_CODED_FRAME_SIZE);
+		i_startcode = cavs_get_one_nal(p, frame->p_cur/*p->m_buf*/, &i_len, MAX_CODED_FRAME_SIZE- frame->i_len);
 
         switch( i_startcode )
         {	
@@ -7671,7 +7671,7 @@ uint32_t cavs_frame_pack( InputStream*p, frame_pack *frame )
 				frame->slice_num = 0;
 				break;
             default:
-                memcpy(frame->p_cur, p->m_buf, i_len ); /* pack slice into one frame */
+                //memcpy(frame->p_cur, p->m_buf, i_len ); /* pack slice into one frame */
 
                 /* set slice info */
                 frame->slice[frame->slice_num].i_startcode = i_startcode;
@@ -9098,19 +9098,19 @@ int decode_one_frame_far(void *p_decoder, frame_pack *frame, cavs_param *param )
 /* cavs_topfield_pack */
 uint32_t cavs_topfield_pack( InputStream*p, frame_pack *field )
 {
-    uint32_t i_startcode;
+    //uint32_t i_startcode;
     int i_len;
     /*unsigned char *m_buf;
 
     m_buf = (unsigned char *)cavs_malloc((MAX_CODED_FRAME_SIZE/2)*sizeof(unsigned char));
     memset(m_buf, 0, (MAX_CODED_FRAME_SIZE/2)*sizeof(unsigned char));*/
 
-    i_startcode = field->slice[0].i_startcode ; /* pic header */
+	uint32_t i_startcode = field->slice[0].i_startcode; /* pic header */
 
     while( i_startcode )
     {  
         cavs_bitstream_save( field, p );
-		i_startcode = cavs_get_one_nal(p, /*field->p_cur*/p->m_buf, &i_len, (MAX_CODED_FRAME_SIZE/2));
+		i_startcode = cavs_get_one_nal(p, field->p_cur/*p->m_buf*/, &i_len, (MAX_CODED_FRAME_SIZE / 2) - field->i_len);
 
         if( ((i_startcode & 0xff) > (uint32_t)field->i_mb_end[0])
 			&& i_startcode != XAVS_USER_DATA_CODE
@@ -9151,7 +9151,7 @@ uint32_t cavs_topfield_pack( InputStream*p, frame_pack *field )
 				field->slice_num = 0;
 				break;
             default:
-                memcpy(field->p_cur, p->m_buf, i_len ); /* pack slice into one frame */
+                //memcpy(field->p_cur, p->m_buf, i_len ); /* pack slice into one frame */
 
                 /* set slice info */
                 field->slice[field->slice_num].i_startcode = i_startcode;
@@ -9555,18 +9555,18 @@ int decode_top_field(void *p_decoder, frame_pack *field, cavs_param *param )
 /* cavs_botfield_pack */
 uint32_t cavs_botfield_pack( InputStream*p, frame_pack *field )
 {
-    uint32_t i_startcode;
+    //uint32_t i_startcode;
     int i_len;
     /*unsigned char *m_buf;
 
     m_buf = (unsigned char *)cavs_malloc((MAX_CODED_FRAME_SIZE/2)*sizeof(unsigned char));
     memset(m_buf, 0, (MAX_CODED_FRAME_SIZE/2)*sizeof(unsigned char));*/
 
-    i_startcode = 1; /* use to start loop */
+	uint32_t i_startcode = 1; /* use to start loop */
     while( i_startcode )
     {  
         cavs_bitstream_save( field, p );
-		i_startcode = cavs_get_one_nal(p, p->m_buf, &i_len, (MAX_CODED_FRAME_SIZE/2));
+		i_startcode = cavs_get_one_nal(p, field->p_cur/*p->m_buf*/, &i_len, (MAX_CODED_FRAME_SIZE / 2) - field->i_len);
 
         switch( i_startcode )
         {	
@@ -9606,7 +9606,7 @@ uint32_t cavs_botfield_pack( InputStream*p, frame_pack *field )
 				field->slice_num = 0;
 				break;
             default:
-                memcpy(field->p_cur, p->m_buf, i_len ); /* pack slice into one frame */
+                //memcpy(field->p_cur, p->m_buf, i_len ); /* pack slice into one frame */
 
                 /* set slice info */
                 field->slice[field->slice_num].i_startcode = i_startcode;
@@ -9973,18 +9973,18 @@ int decode_bot_field(void *p_decoder, frame_pack *field, cavs_param *param )
 /* pack top-field and bot-field into one frame */
 uint32_t cavs_field_pack( InputStream*p, frame_pack *field )
 {
-    uint32_t i_startcode, pre_startcode = 0;
+    uint32_t i_startcode=1, pre_startcode = 0;
     int i_len;
     /*unsigned char *m_buf;
 
     m_buf = (unsigned char *)cavs_malloc((MAX_CODED_FRAME_SIZE)*sizeof(unsigned char));
     memset(m_buf, 0, (MAX_CODED_FRAME_SIZE)*sizeof(unsigned char));*/
 
-    i_startcode = 1; /* use to start loop */
+	//uint32_t i_startcode = 1; /* use to start loop */
     while( i_startcode )
     {  
         cavs_bitstream_save( field, p );
-		i_startcode = cavs_get_one_nal(p, p->m_buf, &i_len, MAX_CODED_FRAME_SIZE);
+		i_startcode = cavs_get_one_nal(p, field->p_cur/*p->m_buf*/, &i_len, MAX_CODED_FRAME_SIZE- field->i_len);
 		
         switch( i_startcode )
         {	
@@ -10034,7 +10034,7 @@ uint32_t cavs_field_pack( InputStream*p, frame_pack *field )
 					return i_startcode;
 				}
 				
-                memcpy(field->p_cur, p->m_buf, i_len ); /* pack slice into one frame */
+                //memcpy(field->p_cur, p->m_buf, i_len ); /* pack slice into one frame */
 
                 /* set slice info */
                 field->slice[field->slice_num].i_startcode = i_startcode;
@@ -11967,7 +11967,7 @@ int cavs_decoder_seq_init( void *p_decoder , cavs_param *param )
     p->Frame = (frame_pack* )cavs_malloc(sizeof(frame_pack));
 	memset(p->Frame, 0, sizeof(frame_pack));
     p->Frame->p_start = (uint8_t* )cavs_malloc(MAX_CODED_FRAME_SIZE*sizeof(uint8_t));
-    memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));  
+    //memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));  
 	
     param->fld_mb_end[0] = (((param->seqsize.lHeight+31)& 0xffffffe0)>>5) - 1; /* top field mb end */
     param->fld_mb_end[1] = (((param->seqsize.lHeight+31)& 0xffffffe0)>>4) - 1; /* bot field mb end */
@@ -12003,7 +12003,7 @@ int cavs_decode_one_frame( void *p_decoder, int i_startcode, cavs_param *param, 
     if( !b_interlaced ) /* decode one frame or one field */
     {
         /* init frame pack */
-        memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));
+        //memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));
 
         /* init */
         p->Frame->p_cur = p->Frame->p_start;
@@ -12057,7 +12057,7 @@ int cavs_decode_one_frame( void *p_decoder, int i_startcode, cavs_param *param, 
         uint32_t frame_type = i_startcode;
         
         /* init field pack of top */
-        memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));
+        //memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));
         p->Frame->b_bottom = 0;
         p->Frame->i_mb_end[0] = param->fld_mb_end[0];
         p->Frame->p_cur = p->Frame->p_start;
@@ -12119,7 +12119,7 @@ int cavs_decode_one_frame( void *p_decoder, int i_startcode, cavs_param *param, 
 
             /* init field pack of bot */
             /* NOTE : bot-field has no pic header */
-            memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));
+            //memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));
             p->Frame->b_bottom = 1;
             p->Frame->i_mb_end[0] = param->fld_mb_end[0];
             p->Frame->i_mb_end[1] = param->fld_mb_end[1];
@@ -12148,12 +12148,12 @@ int cavs_decoder_init_stream( void *p_decoder, unsigned char *rawstream, unsigne
     return 0;
 }
 
-int cavs_decoder_get_one_nal( void *p_decoder, unsigned char *buf, int *length )
+int cavs_decoder_get_one_nal( void *p_decoder, unsigned char *buf, int *length, int buf_len)
 {
     cavs_decoder *p = (cavs_decoder *)p_decoder;
     int i_ret;
     
-	i_ret = cavs_get_one_nal(p->p_stream, buf, length, MAX_CODED_FRAME_SIZE);
+	i_ret = cavs_get_one_nal(p->p_stream, buf, length, buf_len/*MAX_CODED_FRAME_SIZE*/);
 
     return i_ret;
 }
@@ -12393,12 +12393,12 @@ int cavs_decoder_slice_num_probe( void* p_decoder,  int i_startcode, cavs_param 
 
     p->Frame = (frame_pack* )cavs_malloc(sizeof(frame_pack));
     p->Frame->p_start = (uint8_t* )cavs_malloc(MAX_CODED_FRAME_SIZE*sizeof(uint8_t));
-    memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));  
+    //memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));  
 
     if( !b_interlaced )
     {
         /* init frame pack */
-        memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));
+        //memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));
 
         /* init */
         p->Frame->p_cur = p->Frame->p_start;
@@ -12430,7 +12430,7 @@ int cavs_decoder_slice_num_probe( void* p_decoder,  int i_startcode, cavs_param 
         //uint32_t frame_type = i_startcode;
 
         /* init field pack of top */
-        memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));
+        //memset(p->Frame->p_start, 0, MAX_CODED_FRAME_SIZE*sizeof(unsigned char));
         p->Frame->b_bottom = 0;
         //p->Frame->i_mb_end[0] = param->fld_mb_end[0];
         p->Frame->p_cur = p->Frame->p_start;

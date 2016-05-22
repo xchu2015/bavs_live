@@ -38,7 +38,7 @@ typedef struct
 {
     uint8_t *p_start;	//当前帧的输入流起始地址
     uint8_t *p_cur;
-    uint8_t *p_end;
+    //uint8_t *p_end;
    
     int i_len;			//帧包总字节数
     int frame_num;       //当前帧的解码序号
