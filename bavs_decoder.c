@@ -2113,7 +2113,7 @@ cavs_chroma_mc_func xavs_chroma_avg[6];
 static void xavs_emulated_edge_mc(uint8_t *buf, uint8_t *src, int linesize, int block_w, int block_h, 
 	int src_x, int src_y, int w, int h)
 {
-    int x, y;
+    int x, y, kx, ky;
     int start_y, start_x, end_y, end_x;
     
     if(src_y>= h){
@@ -2160,11 +2160,12 @@ static void xavs_emulated_edge_mc(uint8_t *buf, uint8_t *src, int linesize, int 
     }
 #else
     // copy existing part
+	kx = end_x - start_x; ky = start_x + start_y*linesize;
     for(y=start_y; y<end_y; y++){
         //for(x=start_x; x<end_x; x++){
         //    buf[x + y*linesize]= src[x + y*linesize];
         //}
-        memcpy(  &buf[start_x + y*linesize], &src[start_x + y*linesize], end_x - start_x );
+        memcpy(  &buf[start_x + y*linesize], &src[start_x + y*linesize], kx/*end_x - start_x*/ );
     }
     
     //top
@@ -2172,15 +2173,16 @@ static void xavs_emulated_edge_mc(uint8_t *buf, uint8_t *src, int linesize, int 
         //for(x=start_x; x<end_x; x++){
         //    buf[x + y*linesize]= buf[x + start_y*linesize];
         //}
-        memcpy(  &buf[start_x + y*linesize], &buf[start_x + start_y*linesize], end_x - start_x );
+        memcpy(  &buf[start_x + y*linesize], &buf[ky/*start_x + start_y*linesize*/], kx/*end_x - start_x*/ );
     }
 
     //bottom
+	ky = start_x + (end_y - 1)*linesize;
     for(y=end_y; y<block_h; y++){
         //for(x=start_x; x<end_x; x++){
         //    buf[x + y*linesize]= buf[x + (end_y-1)*linesize];
         //}
-        memcpy( &buf[start_x + y*linesize], &buf[start_x + (end_y-1)*linesize], end_x - start_x );
+        memcpy( &buf[start_x + y*linesize], &buf[ky/*start_x + (end_y-1)*linesize*/], kx/*end_x - start_x */);
     }
 
 #endif
@@ -2192,8 +2194,9 @@ static void xavs_emulated_edge_mc(uint8_t *buf, uint8_t *src, int linesize, int 
         }
 
        //right
+		kx = end_x - 1 + y*linesize;
         for(x=end_x; x<block_w; x++){
-            buf[x + y*linesize]= buf[end_x - 1 + y*linesize];
+            buf[x + y*linesize]= buf[kx/*end_x - 1 + y*linesize*/];
         }
     }
 }
@@ -3336,7 +3339,7 @@ static int get_residual_block(cavs_decoder *p,const xavs_vlc *p_vlc_table,
     DECLARE_ALIGNED_16(short dct8x8[8][8]);
     int j, k;
 
-    memset(dct8x8, 0, 64*sizeof(int16_t));
+    //memset(dct8x8, 0, 64*sizeof(int16_t));
 
     i = p->bs_read_coeffs(p, p_vlc_table, i_escape_order, b_chroma);
     if( i == -1 || p->b_error_flag )
@@ -3435,7 +3438,7 @@ static int get_residual_block(cavs_decoder *p,const xavs_vlc *p_vlc_table,
 #else
 	
 	cavs_add8x8_idct8_sse2( p_dest, block,i_stride );
-	memset(block,0,64*sizeof(DCTELEM));
+	//memset(block,0,64*sizeof(DCTELEM));
 #endif
 
 #endif
