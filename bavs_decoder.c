@@ -1702,24 +1702,26 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
     uint8_t bs[8];
     int qp_avg;
     int qp_avg_c;
-    int i;
+    int i,j;
     int qp_avg_cb, qp_avg_cr;
+	uint32_t stride0 = p->cur.i_stride[0], stride1 = p->cur.i_stride[1], stride2 = p->cur.i_stride[2];
 
     /* save c[0] or r[0] */
     p->i_topleft_border_y = p->p_top_border_y[p->i_mb_x*XAVS_MB_SIZE+XAVS_MB_SIZE-1];//0~15
     p->i_topleft_border_cb = p->p_top_border_cb[p->i_mb_x*10+8];//0~9
     p->i_topleft_border_cr = p->p_top_border_cr[p->i_mb_x*10+8];
-    memcpy(&p->p_top_border_y[p->i_mb_x*XAVS_MB_SIZE], p->p_y + 15* p->cur.i_stride[0], 16);
+    memcpy(&p->p_top_border_y[p->i_mb_x*XAVS_MB_SIZE], p->p_y + 15* stride0, 16);
     
     /* point 0 decided by topleft_border */
-    memcpy(&p->p_top_border_cb[p->i_mb_x*10+1], p->p_cb +  7*  p->cur.i_stride[1], 8);
-    memcpy(&p->p_top_border_cr[p->i_mb_x*10+1], p->p_cr +  7*  p->cur.i_stride[2], 8);
-    for(i=0;i<8;i++) 
+    memcpy(&p->p_top_border_cb[p->i_mb_x*10+1], p->p_cb +  7*  stride1, 8);
+    memcpy(&p->p_top_border_cr[p->i_mb_x*10+1], p->p_cr +  7*  stride2, 8);
+    for(i=0,j=0;i<8;i++,j+=2) 
     {
-    	p->i_left_border_y[i*2+1] = *(p->p_y + 15 + (i*2+0)*p->cur.i_stride[0]);
-    	p->i_left_border_y[i*2+2] = *(p->p_y + 15 + (i*2+1)*p->cur.i_stride[0]);
-    	p->i_left_border_cb[i+1] = *(p->p_cb + 7 + i*p->cur.i_stride[1]);
-    	p->i_left_border_cr[i+1] = *(p->p_cr + 7 + i*p->cur.i_stride[2]);
+		//j = i << 1;
+    	p->i_left_border_y[/*i*2*/j+1] = *(p->p_y + 15 + (/*i*2+0*/j)*stride0);
+    	p->i_left_border_y[/*i*2*/j+2] = *(p->p_y + 15 + (/*i*2*/j+1)*stride0);
+    	p->i_left_border_cb[i+1] = *(p->p_cb + 7 + i*stride1);
+    	p->i_left_border_cr[i+1] = *(p->p_cr + 7 + i*stride2);
     }
     memset(&p->i_left_border_y[17], p->i_left_border_y[16], 9);
 
@@ -1778,13 +1780,13 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
                             +  chroma_qp[clip3_int( p->i_left_qp + p->ph.chroma_quant_param_delta_v, 0, 63)] + 1) >> 1; 
 
 #if !HAVE_MMX
-                        cavs_filter_lv(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[0], bs[1]);
-                        cavs_filter_cv(p, p->p_cb, p->cur.i_stride[1], qp_avg_cb, bs[0], bs[1]);
-                        cavs_filter_cv(p, p->p_cr, p->cur.i_stride[2], qp_avg_cr, bs[0], bs[1]);
+                        cavs_filter_lv(p, p->p_y, stride0, qp_avg, bs[0], bs[1]);
+                        cavs_filter_cv(p, p->p_cb, stride1, qp_avg_cb, bs[0], bs[1]);
+                        cavs_filter_cv(p, p->p_cr, stride2, qp_avg_cr, bs[0], bs[1]);
 #else
-                        p->filter_lv(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[0], bs[1]);
-                        p->filter_cv(p, p->p_cb, p->cur.i_stride[1], qp_avg_cb, bs[0], bs[1]);
-                        p->filter_cv(p, p->p_cr, p->cur.i_stride[2], qp_avg_cr, bs[0], bs[1]);
+                        p->filter_lv(p, p->p_y, stride0, qp_avg, bs[0], bs[1]);
+                        p->filter_cv(p, p->p_cb, stride1, qp_avg_cb, bs[0], bs[1]);
+                        p->filter_cv(p, p->p_cr, stride2, qp_avg_cr, bs[0], bs[1]);
 #endif
                         
                     }
@@ -1793,24 +1795,24 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
                         qp_avg_c = (chroma_qp[p->i_qp_tab[p->i_mb_index]] + chroma_qp[p->i_left_qp] + 1) >> 1;
                     
 #if !HAVE_MMX
-                        cavs_filter_lv(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[0], bs[1]);
-                        cavs_filter_cv(p, p->p_cb, p->cur.i_stride[1], qp_avg_c, bs[0], bs[1]);
-                        cavs_filter_cv(p, p->p_cr, p->cur.i_stride[2], qp_avg_c, bs[0], bs[1]);
+                        cavs_filter_lv(p, p->p_y, stride0, qp_avg, bs[0], bs[1]);
+                        cavs_filter_cv(p, p->p_cb, stride1, qp_avg_c, bs[0], bs[1]);
+                        cavs_filter_cv(p, p->p_cr, stride2, qp_avg_c, bs[0], bs[1]);
 #else
-                        p->filter_lv(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[0], bs[1]);
-                        p->filter_cv(p, p->p_cb, p->cur.i_stride[1], qp_avg_c, bs[0], bs[1]);
-                        p->filter_cv(p, p->p_cr, p->cur.i_stride[2], qp_avg_c, bs[0], bs[1]);
+                        p->filter_lv(p, p->p_y, stride0, qp_avg, bs[0], bs[1]);
+                        p->filter_cv(p, p->p_cb, stride1, qp_avg_c, bs[0], bs[1]);
+                        p->filter_cv(p, p->p_cr, stride2, qp_avg_c, bs[0], bs[1]);
 #endif
                     }
                 }
                 qp_avg = p->i_qp_tab[p->i_mb_index];
 
 #if !HAVE_MMX
-                cavs_filter_lv(p, p->p_y + 8, p->cur.i_stride[0], qp_avg, bs[2], bs[3]);
-                cavs_filter_lh(p, p->p_y + 8*p->cur.i_stride[0], p->cur.i_stride[0], qp_avg, bs[6], bs[7]);
+                cavs_filter_lv(p, p->p_y + 8, stride0, qp_avg, bs[2], bs[3]);
+                cavs_filter_lh(p, p->p_y + 8*stride0, stride0, qp_avg, bs[6], bs[7]);
 #else
-                p->filter_lv(p, p->p_y + 8, p->cur.i_stride[0], qp_avg, bs[2], bs[3]);
-                p->filter_lh(p, p->p_y + 8*p->cur.i_stride[0], p->cur.i_stride[0], qp_avg, bs[6], bs[7]);
+                p->filter_lv(p, p->p_y + 8, stride0, qp_avg, bs[2], bs[3]);
+                p->filter_lh(p, p->p_y + 8*stride0, stride0, qp_avg, bs[6], bs[7]);
 #endif
 
                 if(p->i_mb_flags & B_AVAIL) 
@@ -1825,13 +1827,13 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
                             +  chroma_qp[clip3_int( p->p_top_qp[p->i_mb_x] + p->ph.chroma_quant_param_delta_v, 0, 63 )] + 1) >> 1;
 
 #if !HAVE_MMX
-                    cavs_filter_lh(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[4], bs[5]);
-                    cavs_filter_ch(p, p->p_cb, p->cur.i_stride[1], qp_avg_cb, bs[4], bs[5]);
-                    cavs_filter_ch(p, p->p_cr, p->cur.i_stride[2], qp_avg_cr, bs[4], bs[5]);
+                    cavs_filter_lh(p, p->p_y, stride0, qp_avg, bs[4], bs[5]);
+                    cavs_filter_ch(p, p->p_cb, stride1, qp_avg_cb, bs[4], bs[5]);
+                    cavs_filter_ch(p, p->p_cr, stride2, qp_avg_cr, bs[4], bs[5]);
 #else
-                    p->filter_lh(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[4], bs[5]);
-                    p->filter_ch(p, p->p_cb, p->cur.i_stride[1], qp_avg_cb, bs[4], bs[5]);
-                    p->filter_ch(p, p->p_cr, p->cur.i_stride[2], qp_avg_cr, bs[4], bs[5]);
+                    p->filter_lh(p, p->p_y, stride0, qp_avg, bs[4], bs[5]);
+                    p->filter_ch(p, p->p_cb, stride1, qp_avg_cb, bs[4], bs[5]);
+                    p->filter_ch(p, p->p_cr, stride2, qp_avg_cr, bs[4], bs[5]);
 #endif
                     }
                     else
@@ -1839,13 +1841,13 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
                         qp_avg_c = (chroma_qp[p->i_qp_tab[p->i_mb_index]] + chroma_qp[p->p_top_qp[p->i_mb_x]] + 1) >> 1;
 
 #if !HAVE_MMX
-                    cavs_filter_lh(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[4], bs[5]);
-                    cavs_filter_ch(p, p->p_cb, p->cur.i_stride[1], qp_avg_c, bs[4], bs[5]);
-                    cavs_filter_ch(p, p->p_cr, p->cur.i_stride[2], qp_avg_c, bs[4], bs[5]);
+                    cavs_filter_lh(p, p->p_y, stride0, qp_avg, bs[4], bs[5]);
+                    cavs_filter_ch(p, p->p_cb, stride1, qp_avg_c, bs[4], bs[5]);
+                    cavs_filter_ch(p, p->p_cr, stride2, qp_avg_c, bs[4], bs[5]);
 #else
-                    p->filter_lh(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[4], bs[5]);
-                    p->filter_ch(p, p->p_cb, p->cur.i_stride[1], qp_avg_c, bs[4], bs[5]);
-                    p->filter_ch(p, p->p_cr, p->cur.i_stride[2], qp_avg_c, bs[4], bs[5]);
+                    p->filter_lh(p, p->p_y, stride0, qp_avg, bs[4], bs[5]);
+                    p->filter_ch(p, p->p_cb, stride1, qp_avg_c, bs[4], bs[5]);
+                    p->filter_ch(p, p->p_cr, stride2, qp_avg_c, bs[4], bs[5]);
 #endif
                     }
                     
@@ -1912,13 +1914,13 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
                             +  chroma_qp[clip3_int( p->i_left_qp + p->ph.chroma_quant_param_delta_v, 0, 63)] + 1) >> 1; 
 
 #if !HAVE_MMX
-                        cavs_filter_lv(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[0], bs[1]);
-                        cavs_filter_cv(p, p->p_cb, p->cur.i_stride[1], qp_avg_cb, bs[0], bs[1]);
-                        cavs_filter_cv(p, p->p_cr, p->cur.i_stride[2], qp_avg_cr, bs[0], bs[1]);
+                        cavs_filter_lv(p, p->p_y, stride0, qp_avg, bs[0], bs[1]);
+                        cavs_filter_cv(p, p->p_cb, stride1, qp_avg_cb, bs[0], bs[1]);
+                        cavs_filter_cv(p, p->p_cr, stride2, qp_avg_cr, bs[0], bs[1]);
 #else
-                        p->filter_lv(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[0], bs[1]);
-                        p->filter_cv(p, p->p_cb, p->cur.i_stride[1], qp_avg_cb, bs[0], bs[1]);
-                        p->filter_cv(p, p->p_cr, p->cur.i_stride[2], qp_avg_cr, bs[0], bs[1]);
+                        p->filter_lv(p, p->p_y, stride0, qp_avg, bs[0], bs[1]);
+                        p->filter_cv(p, p->p_cb, stride1, qp_avg_cb, bs[0], bs[1]);
+                        p->filter_cv(p, p->p_cr, stride2, qp_avg_cr, bs[0], bs[1]);
 #endif
                         
                     }
@@ -1927,24 +1929,24 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
                         qp_avg_c = (chroma_qp[p->i_qp] + chroma_qp[p->i_left_qp] + 1) >> 1;
                     
 #if !HAVE_MMX
-                        cavs_filter_lv(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[0], bs[1]);
-                        cavs_filter_cv(p, p->p_cb, p->cur.i_stride[1], qp_avg_c, bs[0], bs[1]);
-                        cavs_filter_cv(p, p->p_cr, p->cur.i_stride[2], qp_avg_c, bs[0], bs[1]);
+                        cavs_filter_lv(p, p->p_y, stride0, qp_avg, bs[0], bs[1]);
+                        cavs_filter_cv(p, p->p_cb, stride1, qp_avg_c, bs[0], bs[1]);
+                        cavs_filter_cv(p, p->p_cr, stride2, qp_avg_c, bs[0], bs[1]);
 #else
-                        p->filter_lv(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[0], bs[1]);
-                        p->filter_cv(p, p->p_cb, p->cur.i_stride[1], qp_avg_c, bs[0], bs[1]);
-                        p->filter_cv(p, p->p_cr, p->cur.i_stride[2], qp_avg_c, bs[0], bs[1]);
+                        p->filter_lv(p, p->p_y, stride0, qp_avg, bs[0], bs[1]);
+                        p->filter_cv(p, p->p_cb, stride1, qp_avg_c, bs[0], bs[1]);
+                        p->filter_cv(p, p->p_cr, stride2, qp_avg_c, bs[0], bs[1]);
 #endif
                     }
                 }
                 qp_avg = p->i_qp;
 
 #if !HAVE_MMX
-                cavs_filter_lv(p, p->p_y + 8, p->cur.i_stride[0], qp_avg, bs[2], bs[3]);
-                cavs_filter_lh(p, p->p_y + 8*p->cur.i_stride[0], p->cur.i_stride[0], qp_avg, bs[6], bs[7]);
+                cavs_filter_lv(p, p->p_y + 8, stride0, qp_avg, bs[2], bs[3]);
+                cavs_filter_lh(p, p->p_y + 8*stride0, stride0, qp_avg, bs[6], bs[7]);
 #else
-                p->filter_lv(p, p->p_y + 8, p->cur.i_stride[0], qp_avg, bs[2], bs[3]);
-                p->filter_lh(p, p->p_y + 8*p->cur.i_stride[0], p->cur.i_stride[0], qp_avg, bs[6], bs[7]);
+                p->filter_lv(p, p->p_y + 8, stride0, qp_avg, bs[2], bs[3]);
+                p->filter_lh(p, p->p_y + 8*stride0, stride0, qp_avg, bs[6], bs[7]);
 #endif
 
                 if(p->i_mb_flags & B_AVAIL) 
@@ -1959,13 +1961,13 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
                             +  chroma_qp[clip3_int( p->p_top_qp[p->i_mb_x] + p->ph.chroma_quant_param_delta_v, 0, 63 )] + 1) >> 1;
 
 #if !HAVE_MMX
-                    cavs_filter_lh(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[4], bs[5]);
-                    cavs_filter_ch(p, p->p_cb, p->cur.i_stride[1], qp_avg_cb, bs[4], bs[5]);
-                    cavs_filter_ch(p, p->p_cr, p->cur.i_stride[2], qp_avg_cr, bs[4], bs[5]);
+                    cavs_filter_lh(p, p->p_y, stride0, qp_avg, bs[4], bs[5]);
+                    cavs_filter_ch(p, p->p_cb, stride1, qp_avg_cb, bs[4], bs[5]);
+                    cavs_filter_ch(p, p->p_cr, stride2, qp_avg_cr, bs[4], bs[5]);
 #else
-                    p->filter_lh(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[4], bs[5]);
-                    p->filter_ch(p, p->p_cb, p->cur.i_stride[1], qp_avg_cb, bs[4], bs[5]);
-                    p->filter_ch(p, p->p_cr, p->cur.i_stride[2], qp_avg_cr, bs[4], bs[5]);
+                    p->filter_lh(p, p->p_y, stride0, qp_avg, bs[4], bs[5]);
+                    p->filter_ch(p, p->p_cb, stride1, qp_avg_cb, bs[4], bs[5]);
+                    p->filter_ch(p, p->p_cr, stride2, qp_avg_cr, bs[4], bs[5]);
 #endif
                     }
                     else
@@ -1973,13 +1975,13 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
                         qp_avg_c = (chroma_qp[p->i_qp] + chroma_qp[p->p_top_qp[p->i_mb_x]] + 1) >> 1;
 
 #if !HAVE_MMX
-                    cavs_filter_lh(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[4], bs[5]);
-                    cavs_filter_ch(p, p->p_cb, p->cur.i_stride[1], qp_avg_c, bs[4], bs[5]);
-                    cavs_filter_ch(p, p->p_cr, p->cur.i_stride[2], qp_avg_c, bs[4], bs[5]);
+                    cavs_filter_lh(p, p->p_y, stride0, qp_avg, bs[4], bs[5]);
+                    cavs_filter_ch(p, p->p_cb, stride1, qp_avg_c, bs[4], bs[5]);
+                    cavs_filter_ch(p, p->p_cr, stride2, qp_avg_c, bs[4], bs[5]);
 #else
-                    p->filter_lh(p, p->p_y, p->cur.i_stride[0], qp_avg, bs[4], bs[5]);
-                    p->filter_ch(p, p->p_cb, p->cur.i_stride[1], qp_avg_c, bs[4], bs[5]);
-                    p->filter_ch(p, p->p_cr, p->cur.i_stride[2], qp_avg_c, bs[4], bs[5]);
+                    p->filter_lh(p, p->p_y, stride0, qp_avg, bs[4], bs[5]);
+                    p->filter_ch(p, p->p_cb, stride1, qp_avg_c, bs[4], bs[5]);
+                    p->filter_ch(p, p->p_cr, stride2, qp_avg_c, bs[4], bs[5]);
 #endif
                     }
                     
@@ -2188,7 +2190,7 @@ static void xavs_emulated_edge_mc(uint8_t *buf, uint8_t *src, int linesize, int 
         for(x=0; x<start_x; x++){
             buf[x + y*linesize]= buf[start_x + y*linesize];
         }
-       
+
        //right
         for(x=end_x; x<block_w; x++){
             buf[x + y*linesize]= buf[end_x - 1 + y*linesize];
