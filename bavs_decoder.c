@@ -3438,7 +3438,7 @@ static int get_residual_block(cavs_decoder *p,const xavs_vlc *p_vlc_table,
 #else
 	
 	cavs_add8x8_idct8_sse2( p_dest, block,i_stride );
-	//memset(block,0,64*sizeof(DCTELEM));
+	memset(block,0,64*sizeof(DCTELEM));
 #endif
 
 #endif
@@ -7315,17 +7315,17 @@ extern void *cavs_memcpy_aligned_mmx( void *dst, const void *src, int n );
 
 static void cavs_out_image_yuv420(cavs_decoder *p, xavs_image *p_cur, uint8_t *p_yuv_in[3], int b_bottom )
 {
-    uint32_t j = 0;
+    uint32_t j = 0, vs, hs, fs;
     unsigned char* p_bufimg;
     uint8_t *p_yuv;
     int b_interlaced = p->param.b_interlaced;
     int b_align = 0;
 
-    b_align = 0;//(p->vsh.i_horizontal_size%16) ==0; // BUG : not for SD
+    //b_align = 0;//(p->vsh.i_horizontal_size%16) ==0; // BUG : not for SD
     
     if( !b_interlaced )
     {
-        if( !b_align )
+        if( 1/*!b_align*/ )
         {
             /* Y */
             p_bufimg = p_cur->p_data[0];
@@ -7397,7 +7397,7 @@ static void cavs_out_image_yuv420(cavs_decoder *p, xavs_image *p_cur, uint8_t *p
         int i_bufimg_y = 0;
         int i_bufimg_uv = 0;
 
-        if( b_interlaced && /*p->b_bottom*/b_bottom )
+        if( /*b_interlaced &&*/ /*p->b_bottom*/b_bottom )
         {
             i_offset_y = ((p_cur->i_stride[0])>>1) - 32;
             i_offset_uv = ((p_cur->i_stride[1])>>1) - 16;
@@ -7405,35 +7405,35 @@ static void cavs_out_image_yuv420(cavs_decoder *p, xavs_image *p_cur, uint8_t *p
             i_bufimg_uv =  (p_cur->i_stride[1]>>1);
         }
 
-        if( !b_align )
+        if( 1/*!b_align*/ )
         {
             /* Y */
-            p_yuv = p_yuv_in[0] + i_offset_y;
-            p_bufimg = p_cur->p_data[0] + i_bufimg_y;
-            for ( j = 0; j < (p->vsh.i_vertical_size>>b_interlaced); j++ )
+			p_yuv = p_yuv_in[0] + i_offset_y; fs = p->vsh.i_horizontal_size << 1;
+			p_bufimg = p_cur->p_data[0] + i_bufimg_y; vs = (p->vsh.i_vertical_size >> b_interlaced);
+            for ( j = 0; j < vs/*(p->vsh.i_vertical_size>>b_interlaced)*/; j++ )
             {
                 memcpy( p_yuv, p_bufimg, p->vsh.i_horizontal_size);
-                p_yuv += (p->vsh.i_horizontal_size<<b_interlaced);
+				p_yuv += fs;// (p->vsh.i_horizontal_size << 1/*b_interlaced*/);
                 p_bufimg += p_cur->i_stride[0];
             }
 
             /* U */
-            p_yuv = p_yuv_in[1] + i_offset_uv;
-            p_bufimg = p_cur->p_data[1] + i_bufimg_uv;
-            for ( j = 0; j < ((p->vsh.i_vertical_size/2)>>b_interlaced); j++ )
+			p_yuv = p_yuv_in[1] + i_offset_uv; hs = p->vsh.i_horizontal_size / 2; fs = ((p->vsh.i_horizontal_size >> 1/*/2*/) << 1/*b_interlaced*/);
+			p_bufimg = p_cur->p_data[1] + i_bufimg_uv; vs = ((p->vsh.i_vertical_size / 2) >> b_interlaced);
+            for ( j = 0; j < vs/*((p->vsh.i_vertical_size/2)>>b_interlaced)*/; j++ )
             {
-                memcpy( p_yuv, p_bufimg, p->vsh.i_horizontal_size/2 );
-                p_yuv += ((p->vsh.i_horizontal_size/2)<<b_interlaced);
+                memcpy( p_yuv, p_bufimg, hs/*p->vsh.i_horizontal_size/2*/ );
+				p_yuv += fs;// ((p->vsh.i_horizontal_size >> 1/*/2*/) << 1/*b_interlaced*/);
                 p_bufimg += p_cur->i_stride[1];
             }
 
             /* V */
             p_yuv = p_yuv_in[2] + i_offset_uv;
-            p_bufimg = p_cur->p_data[2] + i_bufimg_uv;
-            for ( j = 0; j < ((p->vsh.i_vertical_size/2)>>b_interlaced); j++ )
+			p_bufimg = p_cur->p_data[2] + i_bufimg_uv;
+            for ( j = 0; j < vs/*((p->vsh.i_vertical_size/2)>>b_interlaced)*/; j++ )
             {  
-                memcpy(p_yuv, p_bufimg, p->vsh.i_horizontal_size/2); 
-                p_yuv += ((p->vsh.i_horizontal_size/2)<<b_interlaced);
+                memcpy(p_yuv, p_bufimg, hs/*p->vsh.i_horizontal_size/2*/); 
+				p_yuv += fs;// ((p->vsh.i_horizontal_size >> 1/*/2*/) << 1/*b_interlaced*/);
                 p_bufimg += p_cur->i_stride[2];
             }
         }
