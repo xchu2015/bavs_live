@@ -290,13 +290,14 @@ unsigned int cavs_get_one_nal (InputStream* p, unsigned char *buf, int *length, 
     }
     if(pIRABS->iClearBitsNum>0)
     {
-    	int shift;
-    	shift = 8 - pIRABS->iClearBitsNum;
-    	i = read_n_bit(pIRABS,pIRABS->iClearBitsNum,&j);
+    	int shift = 8 - pIRABS->iClearBitsNum;
+    	//i = read_n_bit(pIRABS,pIRABS->iClearBitsNum,&j);
+		j = (pIRABS->uClearBits << shift)/* & 0x000000ff*/;
+		pIRABS->iClearBitsNum = 0;
 
 		if (j != 0){
 			if (k >= buf_len) return -1; //bitstream error, exceed buffer limit
-			buf[k++] = /*(char)*/(j << shift);
+			buf[k++] = /*(char)*/(j /*<< shift*/);
 		}
     }
     *length = k;
