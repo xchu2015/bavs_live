@@ -25,76 +25,59 @@ int cavs_init_bitstream( InputStream *p , unsigned char *rawstream, unsigned int
 
 static int ClearNextByte(InputStream *p)
 {
-	int i,k,j;
-	unsigned char temp[3];
-	i = p->iBytePosition;
-	k = p->iBufBytesNum - i;
-	if(k < 3)
-	{
-		int last_len;
+	int j;
+	int i = p->iBytePosition;
+	int k = p->iBufBytesNum - i;
+	unsigned char *pbuf = p->buf;//unsigned char temp[3];
+	if(k < 3){
+		//for(j=0;j<k;j++) temp[j] = pbuf[i+j];
+		if( p->f < p->f_end ){
+			for (j = 0; j<k; j++) pbuf[j] = pbuf[i+j]; //temp[j];
+			j = p->f_end - p->f; 
+			p->iBufBytesNum = MIN2(SVA_STREAM_BUF_SIZE - k, j);
+			memcpy( pbuf+k, p->f, p->iBufBytesNum );
+			p->f += p->iBufBytesNum;
 
-		for(j=0;j<k;j++) 
-                 temp[j] = p->buf[i+j];
-#if 0
-             p->iBufBytesNum = fread(p->buf+k,1,SVA_STREAM_BUF_SIZE-k,p->f);
-#else
-			 if( p->f < p->f_end )
-			 {
-				last_len = p->f_end - p->f; 
-				p->iBufBytesNum = MIN2(SVA_STREAM_BUF_SIZE - k, last_len);
-				memcpy( p->buf+k, p->f, p->iBufBytesNum );
-				p->f += p->iBufBytesNum;
-			 }
-			 else
-				p->iBufBytesNum = 0;
-#endif
-		if(p->iBufBytesNum == 0)
-		{
-			if(k>0)
-			{
-                while(k>0)
+			//for (j = 0; j<k; j++) pbuf[j] = temp[j];
+			p->iBufBytesNum += k;
+			i = p->iBytePosition = 0;
+
+		}else{
+			//p->iBufBytesNum = 0;
+		//if(p->iBufBytesNum == 0){
+			if(k>0){
+                //while(k>0)
                 {
-				    p->uPre3Bytes = ((p->uPre3Bytes<<8) | p->buf[i]) & 0x00ffffff;
-				    if(p->uPre3Bytes < 4 && p->demulate_enable) //modified by X ZHENG, 20080515
-				    {
-					    p->uClearBits = (p->uClearBits << 6) | (p->buf[i] >> 2);
+				    p->uPre3Bytes = ((p->uPre3Bytes<<8) | pbuf[i]) & 0x00ffffff;
+				    if(p->uPre3Bytes < 4 && p->demulate_enable){ //modified by X ZHENG, 20080515
+					    p->uClearBits = (p->uClearBits << 6) | (pbuf[i] >> 2);
 					    p->iClearBitsNum += 6;
 					    //StatBitsPtr->emulate_bits += 2;	//rm52k_r2
-				    }
-				    else
-				    {
-					    p->uClearBits = (p->uClearBits << 8) | p->buf[i];
+				    }else{
+					    p->uClearBits = (p->uClearBits << 8) | pbuf[i];
 					    p->iClearBitsNum += 8;
 				    }
 				    p->iBytePosition++;
-                    k--;
-                    i++;
+                    //k--;
+                    //i++;
                 }
 				return 0;
 			}
-			else
-			{
+			else{
+				p->iBufBytesNum = 0;
 				return -1;//arrive at stream end
 			}
 		}
-		else
-		{
-			for(j=0;j<k;j++) p->buf[j] = temp[j];
-			p->iBufBytesNum += k;
-			i = p->iBytePosition = 0;
-		}
 	}
-	if(p->buf[i]==0 && p->buf[i+1]==0 && p->buf[i+2]==1)	return -2;// meet another start code
-	p->uPre3Bytes = ((p->uPre3Bytes<<8) | p->buf[i]) & 0x00ffffff;
-	if(p->uPre3Bytes < 4 && p->demulate_enable) //modified by XZHENG, 20080515
-	{
-		p->uClearBits = (p->uClearBits << 6) | (p->buf[i] >> 2);
+	if (((*(int*)(pbuf + i)) & 0x00ffffff) == 0x00010000)	return -2;
+	//if (pbuf[i] == 0 && pbuf[i + 1] == 0 && pbuf[i + 2] == 1)	return -2;// meet another start code
+	p->uPre3Bytes = ((p->uPre3Bytes<<8) | pbuf[i]) & 0x00ffffff;
+	if (p->uPre3Bytes < 4 && p->demulate_enable){ //modified by XZHENG, 20080515
+		p->uClearBits = (p->uClearBits << 6) | (pbuf[i] >> 2);
 		p->iClearBitsNum += 6;
 		//StatBitsPtr->emulate_bits += 2;	//rm52k_r2
-	}
-	else
-	{
-		p->uClearBits = (p->uClearBits << 8) | p->buf[i];
+	}else{
+		p->uClearBits = (p->uClearBits << 8) | pbuf[i];
 		p->iClearBitsNum += 8;
 	}
 	p->iBytePosition++;
