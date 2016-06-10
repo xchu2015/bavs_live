@@ -126,6 +126,22 @@ static int read_n_bit(InputStream *p,int n,int *v)
 	return 0;
 }
 
+static int read_n_bit8(InputStream *p, int *v)
+{
+	int r = ClearNextByte(p);
+	if (r) return r;
+	if(8 > p->iClearBitsNum){
+		r = ClearNextByte(p);
+		if(r) return r;
+	};
+	//t = p->uClearBits;
+	//r = 32 - p->iClearBitsNum;
+	//*v = (t << r) >> (24);
+	p->iClearBitsNum -= 8;
+	*v = (p->uClearBits) >> (p->iClearBitsNum);
+	return 0;
+}
+
 int NextStartCode(InputStream *p)
 {
 	int i, m;
@@ -261,7 +277,7 @@ unsigned int cavs_get_one_nal (InputStream* p, unsigned char *buf, int *length, 
     buf[1] = 0;
     buf[2] = 1;
     //*startcodepos = 3;
-    i = read_n_bit( pIRABS, 8, &j );
+	i = read_n_bit8(pIRABS, &j); //read_n_bit( pIRABS, 8, &j );
     buf[3] = j;
     CheckType( pIRABS, buf[3] );  //X ZHENG, 20080515, for demulation
 
@@ -283,7 +299,7 @@ unsigned int cavs_get_one_nal (InputStream* p, unsigned char *buf, int *length, 
     k = 4;
     while(1)
     {
-    	i = read_n_bit(pIRABS,8,&j);
+		i = read_n_bit8(pIRABS, &j);  //read_n_bit(pIRABS, 8, &j);
     	if(i<0) break;
 		if (k >= buf_len) return -1; //bitstream error, exceed buffer limit
     	buf[k++] = /*(char)*/j;

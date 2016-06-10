@@ -10,7 +10,7 @@
 #include <stdio.h>
 
 #define SVA_STREAM_BUF_SIZE 1024
-#define MAX_CODED_FRAME_SIZE 2000000         //!< bytes for one frame
+//#define MAX_CODED_FRAME_SIZE 2000000         //!< bytes for one frame
 
 #define I_PICTURE_START_CODE    0xB3
 #define PB_PICTURE_START_CODE   0xB6
@@ -28,8 +28,8 @@ typedef struct {
     unsigned char *f; /* save stream address */
     unsigned char *f_end;
     unsigned char buf[SVA_STREAM_BUF_SIZE];  //流缓冲区,size must be large than 3 bytes
-	unsigned char m_buf[MAX_CODED_FRAME_SIZE];
-    unsigned int uClearBits;                //不含填充位的位缓冲，32位，初始值是0xFFFFFFFF
+	//unsigned char m_buf[MAX_CODED_FRAME_SIZE];
+    unsigned short/*int*/ uClearBits;                //不含填充位的位缓冲，32位，初始值是0xFFFFFFFF
     unsigned int uPre3Bytes;                //含填充位的位缓冲，32位，初始值是0x00000000
     int iBytePosition;		                   //当前字节位置
     int iBufBytesNum;		                   //最近一次读入缓冲区的字节数

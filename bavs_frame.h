@@ -13,7 +13,7 @@ typedef struct
 {
     uint8_t *p_ori;
     unsigned char buf[SVA_STREAM_BUF_SIZE];
-    unsigned int uClearBits;                //不含填充位的位缓冲，32位，初始值是0xFFFFFFFF
+    unsigned short/*int*/ uClearBits;                //不含填充位的位缓冲，32位，初始值是0xFFFFFFFF
     unsigned int uPre3Bytes;                //含填充位的位缓冲，32位，初始值是0x00000000
     int iBytePosition;		                   //当前字节位置
     int iBufBytesNum;		                   //最近一次读入缓冲区的字节数
