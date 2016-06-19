@@ -6885,7 +6885,7 @@ void cavs_decoder_init( cavs_decoder *p )
     p->cavs_intra_luma[INTRA_L_LP_LEFT] = xavs_intra_pred_dc_lp_left;
     p->cavs_intra_luma[NTRA_L_LP_TOP] = xavs_intra_pred_dc_lp_top;
     p->cavs_intra_luma[INTRA_L_DC_128] = xavs_intra_pred_dc_128;
-    if( p->cpu & CAVS_CPU_MMXEXT )
+    //if( p->cpu & CAVS_CPU_MMXEXT )
     {	
     	p->cavs_intra_luma[INTRA_L_VERT] = cavs_predict_8x8_v_mmxext;
     	p->cavs_intra_luma[INTRA_L_HORIZ] = cavs_predict_8x8_h_mmxext;//xavs_intra_pred_horizontal;
@@ -6942,7 +6942,7 @@ void cavs_decoder_init( cavs_decoder *p )
     p->cavs_intra_chroma[INTRA_C_DC_LEFT] = xavs_intra_pred_chroma_dc_lp_left;
     p->cavs_intra_chroma[INTRA_C_DC_TOP] = xavs_intra_pred_chroma_dc_lp_top;
     p->cavs_intra_chroma[INTRA_C_DC_128] = xavs_intra_pred_chroma_dc_128;
-    if( p->cpu & CAVS_CPU_MMXEXT )
+    //if( p->cpu & CAVS_CPU_MMXEXT )
     {
     	//p->cavs_intra_chroma[INTRA_C_DC] = cavs_predict_8x8c_dc_sse4;//xavs_intra_pred_chroma_dc_lp;
     	p->cavs_intra_chroma[INTRA_C_HORIZ] = cavs_predict_8x8c_h_mmxext;//xavs_intra_pred_chroma_horizontal;
