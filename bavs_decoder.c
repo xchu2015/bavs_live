@@ -1703,7 +1703,7 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
     int qp_avg;
     int qp_avg_c;
     int i,j;
-    int qp_avg_cb, qp_avg_cr;
+	int qp_avg_cb, qp_avg_cr, imb_type_P8 = (i_mb_type > P_8X8);
 	uint32_t stride0 = p->cur.i_stride[0], stride1 = p->cur.i_stride[1], stride2 = p->cur.i_stride[2];
 
     /* save c[0] or r[0] */
@@ -1740,7 +1740,7 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
                 0:    D3  B2  B3  C2
                 4:    A1  X0  X1   -
                 8:    A3  X2  X3   -
-                i_mb_type > P_8X8即表示B帧
+                imb_type_P8即表示B帧
                 bs[8]一共8个元素分别表示最多以4个8*8的块分割的4个垂直边界和4个水平边界，每个边界是8个象素
                 对于16*8或者8*16应该考虑其是否具有中间分割的两个水平和垂直边界
                 0，1，4，5应该是宏块边界上的2个水平和垂直边界
@@ -1749,18 +1749,18 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
                 *((uint64_t *)bs) = 0;
                 if(partition_flags[i_mb_type] & SPLITV)
             	{
-                    bs[2] = get_bs(&p->mv[MV_FWD_X0], &p->mv[MV_FWD_X1], i_mb_type > P_8X8, p->i_uint_length);
-                    bs[3] = get_bs(&p->mv[MV_FWD_X2], &p->mv[MV_FWD_X3], i_mb_type > P_8X8, p->i_uint_length);
+                    bs[2] = get_bs(&p->mv[MV_FWD_X0], &p->mv[MV_FWD_X1], imb_type_P8, p->i_uint_length);
+                    bs[3] = get_bs(&p->mv[MV_FWD_X2], &p->mv[MV_FWD_X3], imb_type_P8, p->i_uint_length);
                 }
                 if(partition_flags[i_mb_type] & SPLITH)
             	{
-                    bs[6] = get_bs(&p->mv[MV_FWD_X0], &p->mv[MV_FWD_X2], i_mb_type > P_8X8, p->i_uint_length);
-                    bs[7] = get_bs(&p->mv[MV_FWD_X1], &p->mv[MV_FWD_X3], i_mb_type > P_8X8, p->i_uint_length);
+                    bs[6] = get_bs(&p->mv[MV_FWD_X0], &p->mv[MV_FWD_X2], imb_type_P8, p->i_uint_length);
+                    bs[7] = get_bs(&p->mv[MV_FWD_X1], &p->mv[MV_FWD_X3], imb_type_P8, p->i_uint_length);
                 }
-                bs[0] = get_bs(&p->mv[MV_FWD_A1], &p->mv[MV_FWD_X0], i_mb_type > P_8X8, p->i_uint_length);
-                bs[1] = get_bs(&p->mv[MV_FWD_A3], &p->mv[MV_FWD_X2], i_mb_type > P_8X8, p->i_uint_length);
-                bs[4] = get_bs(&p->mv[MV_FWD_B2], &p->mv[MV_FWD_X0], i_mb_type > P_8X8, p->i_uint_length);
-                bs[5] = get_bs(&p->mv[MV_FWD_B3], &p->mv[MV_FWD_X1], i_mb_type > P_8X8, p->i_uint_length);
+                bs[0] = get_bs(&p->mv[MV_FWD_A1], &p->mv[MV_FWD_X0], imb_type_P8, p->i_uint_length);
+                bs[1] = get_bs(&p->mv[MV_FWD_A3], &p->mv[MV_FWD_X2], imb_type_P8, p->i_uint_length);
+                bs[4] = get_bs(&p->mv[MV_FWD_B2], &p->mv[MV_FWD_X0], imb_type_P8, p->i_uint_length);
+                bs[5] = get_bs(&p->mv[MV_FWD_B3], &p->mv[MV_FWD_X1], imb_type_P8, p->i_uint_length);
             }
             if( *((uint64_t *)bs) ) 
             {
@@ -1874,7 +1874,7 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
                 0:    D3  B2  B3  C2
                 4:    A1  X0  X1   -
                 8:    A3  X2  X3   -
-                i_mb_type > P_8X8即表示B帧
+                imb_type_P8即表示B帧
                 bs[8]一共8个元素分别表示最多以4个8*8的块分割的4个垂直边界和4个水平边界，每个边界是8个象素
                 对于16*8或者8*16应该考虑其是否具有中间分割的两个水平和垂直边界
                 0，1，4，5应该是宏块边界上的2个水平和垂直边界
@@ -1883,18 +1883,18 @@ static void filter_mb(cavs_decoder *p, int i_mb_type)
                 *((uint64_t *)bs) = 0;
                 if(partition_flags[i_mb_type] & SPLITV)
             	{
-                    bs[2] = get_bs(&p->mv[MV_FWD_X0], &p->mv[MV_FWD_X1], i_mb_type > P_8X8, p->i_uint_length);
-                    bs[3] = get_bs(&p->mv[MV_FWD_X2], &p->mv[MV_FWD_X3], i_mb_type > P_8X8, p->i_uint_length);
+                    bs[2] = get_bs(&p->mv[MV_FWD_X0], &p->mv[MV_FWD_X1], imb_type_P8, p->i_uint_length);
+                    bs[3] = get_bs(&p->mv[MV_FWD_X2], &p->mv[MV_FWD_X3], imb_type_P8, p->i_uint_length);
                 }
                 if(partition_flags[i_mb_type] & SPLITH)
             	{
-                    bs[6] = get_bs(&p->mv[MV_FWD_X0], &p->mv[MV_FWD_X2], i_mb_type > P_8X8, p->i_uint_length);
-                    bs[7] = get_bs(&p->mv[MV_FWD_X1], &p->mv[MV_FWD_X3], i_mb_type > P_8X8, p->i_uint_length);
+                    bs[6] = get_bs(&p->mv[MV_FWD_X0], &p->mv[MV_FWD_X2], imb_type_P8, p->i_uint_length);
+                    bs[7] = get_bs(&p->mv[MV_FWD_X1], &p->mv[MV_FWD_X3], imb_type_P8, p->i_uint_length);
                 }
-                bs[0] = get_bs(&p->mv[MV_FWD_A1], &p->mv[MV_FWD_X0], i_mb_type > P_8X8, p->i_uint_length);
-                bs[1] = get_bs(&p->mv[MV_FWD_A3], &p->mv[MV_FWD_X2], i_mb_type > P_8X8, p->i_uint_length);
-                bs[4] = get_bs(&p->mv[MV_FWD_B2], &p->mv[MV_FWD_X0], i_mb_type > P_8X8, p->i_uint_length);
-                bs[5] = get_bs(&p->mv[MV_FWD_B3], &p->mv[MV_FWD_X1], i_mb_type > P_8X8, p->i_uint_length);
+                bs[0] = get_bs(&p->mv[MV_FWD_A1], &p->mv[MV_FWD_X0], imb_type_P8, p->i_uint_length);
+                bs[1] = get_bs(&p->mv[MV_FWD_A3], &p->mv[MV_FWD_X2], imb_type_P8, p->i_uint_length);
+                bs[4] = get_bs(&p->mv[MV_FWD_B2], &p->mv[MV_FWD_X0], imb_type_P8, p->i_uint_length);
+                bs[5] = get_bs(&p->mv[MV_FWD_B3], &p->mv[MV_FWD_X1], imb_type_P8, p->i_uint_length);
             }
             if( *((uint64_t *)bs) ) 
             {
