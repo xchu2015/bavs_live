@@ -3703,11 +3703,11 @@ static inline void scale_mv(cavs_decoder *p, int *d_x, int *d_y, xavs_vector *sr
 
     int den;
 
-    if(abs(src->ref) > 3)
+    /*if(abs(src->ref) > 3)
     {
     	p->b_error_flag = 1;
     	return;
-    }
+    }*/
 
     den = p->i_scale_den[src->ref];
 
@@ -3736,17 +3736,21 @@ static inline void mv_pred_median(cavs_decoder *p, xavs_vector *mvP, xavs_vector
 {
     int ax, ay, bx, by, cx, cy;
     int len_ab, len_bc, len_ca, len_mid;
+	if( abs(mvA->ref)>3 || abs(mvB->ref)>3 || abs(mvC->ref)>3 ){
+		p->b_error_flag = 1;
+		return;
+	}
 
     /* scale candidates according to their temporal span */
     scale_mv(p, &ax, &ay, mvA, mvP->dist);
-    if(p->b_error_flag)
-    	return;
+    //if(p->b_error_flag)
+    	//return;
     scale_mv(p, &bx, &by, mvB, mvP->dist);
-    if(p->b_error_flag)
-    	return;
+    //if(p->b_error_flag)
+    	//return;
     scale_mv(p, &cx, &cy, mvC, mvP->dist);
-    if(p->b_error_flag)
-    	return;
+    //if(p->b_error_flag)
+    	//return;
     
     /* find the geometrical median of the three candidates */
     len_ab = abs(ax - bx) + abs(ay - by);
@@ -4360,17 +4364,17 @@ static inline void mv_pred_direct(cavs_decoder *p, xavs_vector *pmv_fw, xavs_vec
     int den;
     int m = col_mv->x >> 31;
 
-    if(abs(col_mv->ref) > 3)
+    /*if(abs(col_mv->ref) > 3)
     {
         p->b_error_flag = 1;
         return;
-    }
+    }*/
     
-    den = p->i_direct_den[col_mv->ref];
+    //den = p->i_direct_den[col_mv->ref];
     
-    iBlockDistanceRef = (iDistanceIndexBw - iDistanceIndexRef + 512) % 512;
-    pmv_fw->dist = (iDistanceIndexCur - iDistanceIndexFw + 512) % 512;
-    pmv_bw->dist = (iDistanceIndexBw - iDistanceIndexCur + 512) % 512;
+	iBlockDistanceRef = (iDistanceIndexBw - iDistanceIndexRef + 512) & 0x1ff; // % 512;
+	pmv_fw->dist = (iDistanceIndexCur - iDistanceIndexFw + 512) & 0x1ff; // % 512;
+	pmv_bw->dist = (iDistanceIndexBw - iDistanceIndexCur + 512) & 0x1ff; // % 512;
     den = (iBlockDistanceRef == 0) ? 0 : 16384/iBlockDistanceRef;
 
     if(m)
@@ -4513,8 +4517,8 @@ static void get_b_direct_skip_sub_mb(cavs_decoder *p,int block,xavs_vector *p_mv
 
             mv_pred_direct(p,&p->mv[mv_scan[block]], &temp_mv,
                     iDistanceIndexRef, iDistanceIndexFw, iDistanceIndexBw, 0, 0, 0);
-            if( p->b_error_flag )
-                return;
+            //if( p->b_error_flag )
+                //return;
         } 
         else /* field */ 
         {
@@ -4590,8 +4594,8 @@ static void get_b_direct_skip_sub_mb(cavs_decoder *p,int block,xavs_vector *p_mv
 
             mv_pred_direct(p,&p->mv[mv_scan[block]], &temp_mv,
                                     iDistanceIndexRef, iDistanceIndexFw, iDistanceIndexBw, deltaRef, deltaMvFw, deltaMvBw);
-            if( p->b_error_flag )
-                return;
+            //if( p->b_error_flag )
+                //return;
         }
          
     }
@@ -4634,8 +4638,8 @@ static void get_b_direct_skip_sub_mb(cavs_decoder *p,int block,xavs_vector *p_mv
 
             mv_pred_direct(p,&p->mv[mv_scan[block]], &temp_mv,
                                     iDistanceIndexRef, iDistanceIndexFw, iDistanceIndexBw, 0, 0, 0);
-            if( p->b_error_flag )
-                return;
+            //if( p->b_error_flag )
+                //return;
         }	
         else /* field */ 
         {
@@ -4711,8 +4715,8 @@ static void get_b_direct_skip_sub_mb(cavs_decoder *p,int block,xavs_vector *p_mv
 
             mv_pred_direct(p,&p->mv[mv_scan[block]], &temp_mv,
                                     iDistanceIndexRef, iDistanceIndexFw, iDistanceIndexBw, deltaRef, deltaMvFw, deltaMvBw);
-            if( p->b_error_flag )
-                return;
+            //if( p->b_error_flag )
+                //return;
         }
     }
 }
