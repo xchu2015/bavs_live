@@ -1564,11 +1564,11 @@ int cavs_cabac_get_mvd(cavs_decoder *p, int i_list, int mvd_scan_idx, int xy_idx
 				}
             }
 
-            if( l!=0 && l!=1 )
+            /*if( l!=0 && l!=1 )
             {
                 	p->b_error_flag = 1;
                 	return -1;
-            }
+            }*/
         } while(l!=1);
         while (golomb_order--)
         {//next binary part
@@ -1604,11 +1604,11 @@ int cavs_cabac_get_mvd(cavs_decoder *p, int i_list, int mvd_scan_idx, int xy_idx
 				}
         	}
 
-		    if( l!=0 && l!=1 )
+		    /*if( l!=0 && l!=1 )
 		    {
 			    p->b_error_flag = 1;
 			    return -1;
-		    }
+		    }*/
         } while (l!=1);
         while (golomb_order--)
         {//next binary part
