@@ -2329,7 +2329,7 @@ static inline void mc_part_std(cavs_decoder *p,int chroma_height,
     int bw_luma_scale, bw_chroma_scale;
     int bw_luma_shift, bw_chroma_shift;
     int ii, jj;
-	int i_first_field = p->i_mb_index < p->i_mb_num_half ? 1 : 0; /* 0 is bottom */
+	int i_first_field = p->i_mb_index < p->i_mb_num_half;// ? 1 : 0; /* 0 is bottom */
 
 #endif
 
@@ -2620,9 +2620,10 @@ static inline void mc_part_std(cavs_decoder *p,int chroma_height,
 
 static void inter_pred(cavs_decoder *p, int i_mb_type) 
 {
-    int y_16, c_16;
+    //int y_16, c_16;
+	int ind = (p->i_mb_x << 2);
 
-    y_16 = c_16 = 0;
+    //y_16 = c_16 = 0;
     //if(p->ph.asi_enable == 1)
     //{
     //    y_16=2;
@@ -2640,8 +2641,8 @@ static void inter_pred(cavs_decoder *p, int i_mb_type)
 #else
     	mc_part_std(p, 8, p->p_y, p->p_cb, p->p_cr,
     		0, 0,&p->mv[MV_FWD_X0],
-    		p->put_cavs_qpel_pixels_tab[0+y_16],p->put_h264_chroma_pixels_tab[0+c_16],
-    		p->avg_cavs_qpel_pixels_tab[0+y_16],p->avg_h264_chroma_pixels_tab[0+c_16]);
+    		p->put_cavs_qpel_pixels_tab[0/*+y_16*/],p->put_h264_chroma_pixels_tab[0/*+c_16*/],
+    		p->avg_cavs_qpel_pixels_tab[0/*+y_16*/],p->avg_h264_chroma_pixels_tab[0/*+c_16*/]);
 #endif
     }
     else
@@ -2669,23 +2670,23 @@ static void inter_pred(cavs_decoder *p, int i_mb_type)
 #else
     	mc_part_std(p, 4, p->p_y, p->p_cb, p->p_cr, 
     		0, 0,&p->mv[MV_FWD_X0],
-    		p->put_cavs_qpel_pixels_tab[1+y_16],p->put_h264_chroma_pixels_tab[1+c_16],
-    		p->avg_cavs_qpel_pixels_tab[1+y_16],p->avg_h264_chroma_pixels_tab[1+c_16]);
+    		p->put_cavs_qpel_pixels_tab[1/*+y_16*/],p->put_h264_chroma_pixels_tab[1/*+c_16*/],
+    		p->avg_cavs_qpel_pixels_tab[1/*+y_16*/],p->avg_h264_chroma_pixels_tab[1/*+c_16*/]);
     	
     	mc_part_std(p, 4, p->p_y, p->p_cb, p->p_cr,
     		4, 0,&p->mv[MV_FWD_X1],
-    		p->put_cavs_qpel_pixels_tab[1+y_16],p->put_h264_chroma_pixels_tab[1+c_16],
-    		p->avg_cavs_qpel_pixels_tab[1+y_16],p->avg_h264_chroma_pixels_tab[1+c_16]);
+    		p->put_cavs_qpel_pixels_tab[1/*+y_16*/],p->put_h264_chroma_pixels_tab[1/*+c_16*/],
+    		p->avg_cavs_qpel_pixels_tab[1/*+y_16*/],p->avg_h264_chroma_pixels_tab[1/*+c_16*/]);
     	
     	mc_part_std(p, 4, p->p_y, p->p_cb, p->p_cr,
     		0, 4,&p->mv[MV_FWD_X2],
-    		p->put_cavs_qpel_pixels_tab[1+y_16],p->put_h264_chroma_pixels_tab[1+c_16],
-    		p->avg_cavs_qpel_pixels_tab[1+y_16],p->avg_h264_chroma_pixels_tab[1+c_16]);
+    		p->put_cavs_qpel_pixels_tab[1/*+y_16*/],p->put_h264_chroma_pixels_tab[1/*+c_16*/],
+    		p->avg_cavs_qpel_pixels_tab[1/*+y_16*/],p->avg_h264_chroma_pixels_tab[1/*+c_16*/]);
     	
     	mc_part_std(p, 4, p->p_y, p->p_cb, p->p_cr,
     		4, 4,&p->mv[MV_FWD_X3],
-    		p->put_cavs_qpel_pixels_tab[1+y_16],p->put_h264_chroma_pixels_tab[1+c_16],
-    		p->avg_cavs_qpel_pixels_tab[1+y_16],p->avg_h264_chroma_pixels_tab[1+c_16]);
+    		p->put_cavs_qpel_pixels_tab[1/*+y_16*/],p->put_h264_chroma_pixels_tab[1/*+c_16*/],
+    		p->avg_cavs_qpel_pixels_tab[1/*+y_16*/],p->avg_h264_chroma_pixels_tab[1/*+c_16*/]);
 #endif
     }
 
@@ -2693,8 +2694,8 @@ static void inter_pred(cavs_decoder *p, int i_mb_type)
     p->i_intra_pred_mode_y[5] =  p->i_intra_pred_mode_y[10] = 
     p->i_intra_pred_mode_y[15] =  p->i_intra_pred_mode_y[20] = NOT_AVAIL;
 
-    p->p_top_intra_pred_mode_y[(p->i_mb_x<<2)+0] = p->p_top_intra_pred_mode_y[(p->i_mb_x<<2)+1] = 
-    p->p_top_intra_pred_mode_y[(p->i_mb_x<<2)+2] = p->p_top_intra_pred_mode_y[(p->i_mb_x<<2)+3] = NOT_AVAIL;    
+	p->p_top_intra_pred_mode_y[ind/*(p->i_mb_x<<2)+0*/] = p->p_top_intra_pred_mode_y[ind/*(p->i_mb_x << 2)*/+1] =
+    p->p_top_intra_pred_mode_y[ind/*(p->i_mb_x<<2)*/+2] = p->p_top_intra_pred_mode_y[ind/*(p->i_mb_x<<2)*/+3] = NOT_AVAIL;    
 }
 
 
