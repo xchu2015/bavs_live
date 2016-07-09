@@ -2203,7 +2203,7 @@ static void xavs_emulated_edge_mc(uint8_t *buf, uint8_t *src, int linesize, int 
 
 
 static inline void mc_dir_part(cavs_decoder *p,xavs_image *ref,
-                        int chroma_height,int list,uint8_t *dest_y,
+                        int chroma_height,int pic_ht/*list*/,uint8_t *dest_y,
                         uint8_t *dest_cb,uint8_t *dest_cr,int src_x_offset,
                         int src_y_offset,cavs_luma_mc_func *luma,
                         cavs_chroma_mc_func chroma,xavs_vector *mv)
@@ -2231,7 +2231,7 @@ static inline void mc_dir_part(cavs_decoder *p,xavs_image *ref,
     const int full_mx = mx>>2;
     const int full_my = my>>2;
     const int pic_width  = p->i_mb_width<<4;
-    const int pic_height = ( p->ph.b_picture_structure==0?(p->i_mb_height>>1):p->i_mb_height)<<4;
+	const int pic_height = pic_ht; //(p->ph.b_picture_structure == 0 ? (p->i_mb_height >> 1) : p->i_mb_height) << 4;
 #endif
 
     //if( p->ph.asi_enable == 1 )
@@ -2243,7 +2243,7 @@ static inline void mc_dir_part(cavs_decoder *p,xavs_image *ref,
     //}
     //else
     {
-        src_y = ref->p_data[0] + (mx>>2) + (my>>2)*(int)ref->i_stride[0]; // NOTE : unsigned sign must trans to sign
+        src_y = ref->p_data[0] + (full_mx/*mx>>2*/) + (full_my/*my>>2*/)*(int)ref->i_stride[0]; // NOTE : unsigned sign must trans to sign
         src_cb= ref->p_data[1] + (mx>>3) + (my>>3)*(int)ref->i_stride[1];
         src_cr= ref->p_data[2] + (mx>>3) + (my>>3)*(int)ref->i_stride[2];
     }
@@ -2310,7 +2310,7 @@ static inline void mc_dir_part(cavs_decoder *p,xavs_image *ref,
         chroma(dest_cr, src_cr, ref->i_stride[2], chroma_height, mx&7, my&7);
 }
 
-static inline void mc_part_std(cavs_decoder *p,int chroma_height,
+static inline void mc_part_std(cavs_decoder *p,int chroma_height,int pic_ht,
                        uint8_t *dest_y,uint8_t *dest_cb,uint8_t *dest_cr,
 					   int x_offset, int y_offset,xavs_vector *mv,
 					   cavs_luma_mc_func *luma_put,cavs_chroma_mc_func chroma_put,
@@ -2330,6 +2330,7 @@ static inline void mc_part_std(cavs_decoder *p,int chroma_height,
     int bw_luma_shift, bw_chroma_shift;
     int ii, jj;
 	int i_first_field = p->i_mb_index < p->i_mb_num_half;// ? 1 : 0; /* 0 is bottom */
+	//int pic_ht = (p->ph.b_picture_structure == 0 ? (p->i_mb_height >> 1) : p->i_mb_height) << 4;
 
 #endif
 
@@ -2359,7 +2360,7 @@ static inline void mc_part_std(cavs_decoder *p,int chroma_height,
     {
         xavs_image *ref= &p->ref[mv->ref];
 
-        mc_dir_part(p, ref, chroma_height, 0, dest_y, dest_cb, dest_cr, x_offset, y_offset,
+        mc_dir_part(p, ref, chroma_height, pic_ht/*0*/, dest_y, dest_cb, dest_cr, x_offset, y_offset,
                     lum, chroma, mv);
         i_dir = 1; /* forward flag */
 
@@ -2468,7 +2469,7 @@ static inline void mc_part_std(cavs_decoder *p,int chroma_height,
         
         if( i_dir == 0 )/* has no forward */
         {
-            mc_dir_part(p, ref,  chroma_height,  1,
+			mc_dir_part(p, ref, chroma_height, pic_ht/*1*/,
                                 dest_y, dest_cb, dest_cr, x_offset, y_offset,
                                 lum, chroma, mv+MV_BWD_OFFS);
 
@@ -2524,7 +2525,7 @@ static inline void mc_part_std(cavs_decoder *p,int chroma_height,
         }
         else/* already has forward */
         {
-            mc_dir_part(p, ref,  chroma_height,  1,
+			mc_dir_part(p, ref, chroma_height, pic_ht/*1*/,
                             dst_back_y, dst_back_cb, dst_back_cr, x_offset_back, y_offset_back,
                             lum, chroma, mv+MV_BWD_OFFS);
 
@@ -2630,6 +2631,7 @@ static void inter_pred(cavs_decoder *p, int i_mb_type)
 {
     //int y_16, c_16;
 	int ind = (p->i_mb_x << 2);
+	int pic_ht = (p->ph.b_picture_structure == 0 ? (p->i_mb_height >> 1) : p->i_mb_height) << 4;
 
     //y_16 = c_16 = 0;
     //if(p->ph.asi_enable == 1)
@@ -2647,7 +2649,7 @@ static void inter_pred(cavs_decoder *p, int i_mb_type)
     		xavs_luma_put[0+y_16],xavs_chroma_put[0+c_16],
     		xavs_luma_avg[0+y_16],xavs_chroma_avg[0+c_16]);
 #else
-    	mc_part_std(p, 8, p->p_y, p->p_cb, p->p_cr,
+    	mc_part_std(p, 8, pic_ht, p->p_y, p->p_cb, p->p_cr,
     		0, 0,&p->mv[MV_FWD_X0],
     		p->put_cavs_qpel_pixels_tab[0/*+y_16*/],p->put_h264_chroma_pixels_tab[0/*+c_16*/],
     		p->avg_cavs_qpel_pixels_tab[0/*+y_16*/],p->avg_h264_chroma_pixels_tab[0/*+c_16*/]);
@@ -2676,22 +2678,22 @@ static void inter_pred(cavs_decoder *p, int i_mb_type)
     		xavs_luma_put[1+y_16],xavs_chroma_put[1+c_16],
     		xavs_luma_avg[1+y_16],xavs_chroma_avg[1+c_16]);
 #else
-    	mc_part_std(p, 4, p->p_y, p->p_cb, p->p_cr, 
+    	mc_part_std(p, 4, pic_ht, p->p_y, p->p_cb, p->p_cr, 
     		0, 0,&p->mv[MV_FWD_X0],
     		p->put_cavs_qpel_pixels_tab[1/*+y_16*/],p->put_h264_chroma_pixels_tab[1/*+c_16*/],
     		p->avg_cavs_qpel_pixels_tab[1/*+y_16*/],p->avg_h264_chroma_pixels_tab[1/*+c_16*/]);
     	
-    	mc_part_std(p, 4, p->p_y, p->p_cb, p->p_cr,
+    	mc_part_std(p, 4, pic_ht, p->p_y, p->p_cb, p->p_cr,
     		4, 0,&p->mv[MV_FWD_X1],
     		p->put_cavs_qpel_pixels_tab[1/*+y_16*/],p->put_h264_chroma_pixels_tab[1/*+c_16*/],
     		p->avg_cavs_qpel_pixels_tab[1/*+y_16*/],p->avg_h264_chroma_pixels_tab[1/*+c_16*/]);
     	
-    	mc_part_std(p, 4, p->p_y, p->p_cb, p->p_cr,
+    	mc_part_std(p, 4, pic_ht, p->p_y, p->p_cb, p->p_cr,
     		0, 4,&p->mv[MV_FWD_X2],
     		p->put_cavs_qpel_pixels_tab[1/*+y_16*/],p->put_h264_chroma_pixels_tab[1/*+c_16*/],
     		p->avg_cavs_qpel_pixels_tab[1/*+y_16*/],p->avg_h264_chroma_pixels_tab[1/*+c_16*/]);
     	
-    	mc_part_std(p, 4, p->p_y, p->p_cb, p->p_cr,
+    	mc_part_std(p, 4, pic_ht, p->p_y, p->p_cb, p->p_cr,
     		4, 4,&p->mv[MV_FWD_X3],
     		p->put_cavs_qpel_pixels_tab[1/*+y_16*/],p->put_h264_chroma_pixels_tab[1/*+c_16*/],
     		p->avg_cavs_qpel_pixels_tab[1/*+y_16*/],p->avg_h264_chroma_pixels_tab[1/*+c_16*/]);
