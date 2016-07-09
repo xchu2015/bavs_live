@@ -2321,7 +2321,7 @@ static inline void mc_part_std(cavs_decoder *p,int chroma_height,
 
 #if B_MB_WEIGHTING
     int i_dir = 0;
-    uint8_t *dst_back_y, *dst_back_cb, *dst_back_cr;
+	uint8_t *dst_back_y = p->p_back_y, *dst_back_cb = p->p_back_cb, *dst_back_cr = p->p_back_cr;
     int x_offset_back = x_offset;
     int y_offset_back = y_offset;
     int fw_luma_scale, fw_chroma_scale;
@@ -2341,9 +2341,9 @@ static inline void mc_part_std(cavs_decoder *p,int chroma_height,
 
 #if B_MB_WEIGHTING
     /* get temp buffer for dest_y, dest_cb, dest_cr */
-    dst_back_y = p->p_back_y;
+    /*dst_back_y = p->p_back_y;
     dst_back_cb = p->p_back_cb;
-    dst_back_cr = p->p_back_cr;
+    dst_back_cr = p->p_back_cr;*/
 
     dst_back_y += (2*x_offset_back) + (2*y_offset_back*p->cur.i_stride[0]); /* set buffer address */
     dst_back_cb += x_offset_back +  y_offset_back*p->cur.i_stride[1];
@@ -2576,23 +2576,31 @@ static inline void mc_part_std(cavs_decoder *p,int chroma_height,
                     }
                 }
 			}
+
+			/* avg */
+			/* luma */
+			p->cavs_avg_pixels_tab[!(chroma_height == 8)](dest_y, p->cur.i_stride[0], dst_back_y, p->cur.i_stride[0]);
+			/* cb */
+			p->cavs_avg_pixels_tab[(!(chroma_height == 8)) + 1](dest_cb, p->cur.i_stride[1], dst_back_cb, p->cur.i_stride[1]);
+			/* cr */
+			p->cavs_avg_pixels_tab[(!(chroma_height == 8)) + 1](dest_cr, p->cur.i_stride[2], dst_back_cr, p->cur.i_stride[2]);
         }
         
-        i_dir = i_dir|2;  /* backward flag */
+        //i_dir = i_dir|2;  /* backward flag */
     }
 
     /* avg */
-    if( i_dir == 3 )
-    {
-        /* luma */
-        p->cavs_avg_pixels_tab[!(chroma_height==8)]( dest_y, p->cur.i_stride[0], dst_back_y, p->cur.i_stride[0] );
+    //if( i_dir == 3 )
+    //{
+    //    /* luma */
+    //    p->cavs_avg_pixels_tab[!(chroma_height==8)]( dest_y, p->cur.i_stride[0], dst_back_y, p->cur.i_stride[0] );
 
-        /* cb */
-        p->cavs_avg_pixels_tab[(!(chroma_height==8)) + 1]( dest_cb, p->cur.i_stride[1], dst_back_cb, p->cur.i_stride[1] );
-        
-        /* cr */
-        p->cavs_avg_pixels_tab[(!(chroma_height==8)) + 1]( dest_cr, p->cur.i_stride[2], dst_back_cr, p->cur.i_stride[2] );
-    }
+    //    /* cb */
+    //    p->cavs_avg_pixels_tab[(!(chroma_height==8)) + 1]( dest_cb, p->cur.i_stride[1], dst_back_cb, p->cur.i_stride[1] );
+    //    
+    //    /* cr */
+    //    p->cavs_avg_pixels_tab[(!(chroma_height==8)) + 1]( dest_cr, p->cur.i_stride[2], dst_back_cr, p->cur.i_stride[2] );
+    //}
 
 #else
     if(mv->ref >= 0)
