@@ -1430,42 +1430,51 @@ int cavs_cabac_get_cbp(cavs_decoder *p)
 	bi_ctx_t * ctx = p->cabac.cbp_contexts[0];
 	int bit, a, b;
 	int symbol = 0;
+	cavs_cabac_t *cb = &(p->cabac);
+	uint16_t cbvalue_t = cb->value_t, cbvalue_s = cb->value_s, cbt1 = cb->t1, cbs1 = cb->s1;
 
 	/* -1 for cbp not available(outside of slice) */
 	/* block 0 */
 	a = !(p->i_cbp_left & (2/*1<<1*/));
 	b = !(p->p_cbp_top[p->i_mb_x] & (4/*1<<2*/));
-	bit = cavs_biari_decode_symbol(&p->cabac, ctx + a + 2 * b);
+	//bit = cavs_biari_decode_symbol(&p->cabac, ctx + a + 2 * b);
+	cavs_biari_decode_symbolDF(cb, ctx + a + 2 * b, bit);
 	symbol |= bit;
 
 	/* block 1 */
 	a = !bit;	/*we just get the zero count of left block*/
 	b = !(p->p_cbp_top[p->i_mb_x] & (8/*1<<3*/));
-	bit = cavs_biari_decode_symbol(&p->cabac, ctx + a + 2 * b);
+	//bit = cavs_biari_decode_symbol(&p->cabac, ctx + a + 2 * b);
+	cavs_biari_decode_symbolDF(cb, ctx + a + 2 * b, bit);
 	symbol |= (bit << 1);
 
 	/* block 2 */
 	a = !(p->i_cbp_left & (8/*1<<3*/));
 	b = !(symbol & 1);
-	bit = cavs_biari_decode_symbol(&p->cabac, ctx + a + 2 * b);
+	//bit = cavs_biari_decode_symbol(&p->cabac, ctx + a + 2 * b);
+	cavs_biari_decode_symbolDF(cb, ctx + a + 2 * b, bit);
 	symbol |= (bit << 2);
 
 	/* block 3 */
 	a = !bit;
 	b = !(symbol & (2/*1<<1*/));
-	bit = cavs_biari_decode_symbol(&p->cabac, ctx + a + 2 * b);
+	//bit = cavs_biari_decode_symbol(&p->cabac, ctx + a + 2 * b);
+	cavs_biari_decode_symbolDF(cb, ctx + a + 2 * b, bit);
 	symbol |= (bit << 3);
 
 	ctx = p->cabac.cbp_contexts[1];
-	bit = cavs_biari_decode_symbol(&p->cabac, ctx);
+	//bit = cavs_biari_decode_symbol(&p->cabac, ctx);
+	cavs_biari_decode_symbolDF(cb, ctx, bit);
 	if (bit)
 	{
-		bit = cavs_biari_decode_symbol(&p->cabac, ctx + 1);
+		//bit = cavs_biari_decode_symbol(&p->cabac, ctx + 1);
+		cavs_biari_decode_symbolDF(cb, ctx + 1, bit);
 		if (bit)
 			symbol |= (48/*3<<4*/);
 		else
 		{
-			bit = cavs_biari_decode_symbol(&p->cabac, ctx + 1);
+			//bit = cavs_biari_decode_symbol(&p->cabac, ctx + 1);
+			cavs_biari_decode_symbolDF(cb, ctx + 1, bit);
 			symbol |= 1 << (4 + bit);
 		}
 	}
@@ -1474,7 +1483,7 @@ int cavs_cabac_get_cbp(cavs_decoder *p)
 	fprintf(trace_fp, "CBP\t\t\t%d\n", symbol);
 	fflush(trace_fp);
 #endif
-
+	cb->value_t = cbvalue_t; cb->value_s = cbvalue_s; cb->t1 = cbt1; cb->s1 = cbs1;
 	p->b_error_flag = (&(p->cabac))->b_cabac_error;
 	if (p->b_error_flag)
 	{
@@ -1550,11 +1559,11 @@ int cavs_cabac_get_mvd(cavs_decoder *p, int i_list, int mvd_scan_idx, int xy_idx
     else if (!cavs_biari_decode_symbol(&p->cabac, ctx + 5))
     {
         symbol = 0;
-        do {
-            l = cavs_biari_decode_symbol_bypass(&p->cabac);
-            if (!l)
+		while (cavs_biari_decode_symbol_bypass(&p->cabac)==0)/*do */{
+            //l = cavs_biari_decode_symbol_bypass(&p->cabac);
+            //if (!l)
             {
-                symbol += (1<<golomb_order);
+                symbol /*+*/|= (1<<golomb_order);
                 ++golomb_order;
 
 				if(symbol > 4096) /*remove endless loop*/
@@ -1569,7 +1578,7 @@ int cavs_cabac_get_mvd(cavs_decoder *p, int i_list, int mvd_scan_idx, int xy_idx
                 	p->b_error_flag = 1;
                 	return -1;
             }*/
-        } while(l!=1);
+        } //while(l!=1);
         while (golomb_order--)
         {//next binary part
         	l = cavs_biari_decode_symbol_bypass(&p->cabac);
@@ -1589,12 +1598,12 @@ int cavs_cabac_get_mvd(cavs_decoder *p, int i_list, int mvd_scan_idx, int xy_idx
     else
     {
         symbol = 0;
-        do
+		while (cavs_biari_decode_symbol_bypass(&p->cabac)==0)/*do*/
         {
-        	l = cavs_biari_decode_symbol_bypass(&p->cabac);
-        	if (!l) 
+        	//l = cavs_biari_decode_symbol_bypass(&p->cabac);
+        	//if (!l) 
         	{
-        		symbol += (1<<golomb_order); 
+        		symbol /*+*/|= (1<<golomb_order); 
         		++golomb_order;
 
 				if(symbol > 4096) /*remove endless loop*/
@@ -1609,7 +1618,7 @@ int cavs_cabac_get_mvd(cavs_decoder *p, int i_list, int mvd_scan_idx, int xy_idx
 			    p->b_error_flag = 1;
 			    return -1;
 		    }*/
-        } while (l!=1);
+        } //while (l!=1);
         while (golomb_order--)
         {//next binary part
         	l = cavs_biari_decode_symbol_bypass(&p->cabac);
