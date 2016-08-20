@@ -169,8 +169,11 @@ int NextStartCode(InputStream *p)
 			p->iBytePosition = 0;
 		}
 
-		if(p->iBufBytesNum + m < 3) 
-			return -1;  //arrive at stream end and start code is not found
+		if (p->iBufBytesNum + m < 3) {
+			//return -1;  //arrive at stream end and start code is not 
+			printf("\n arrive at stream end and start code is not found! ");
+			return 254;
+		}
 
 		if(m==1 && b==0 && p->buf[0]==0 && p->buf[1]==1)
 		{
@@ -244,18 +247,18 @@ unsigned int cavs_get_one_nal (InputStream* p, unsigned char *buf, int *length, 
 
     i = NextStartCode(pIRABS);
     i_tmp = i;
-    if(i!=0)
-    {
-        i_tmp = i;
-        if( i == -1 )
+    //if(i!=0)
+    //{
+        //i_tmp = i;
+        /*if( i == -1 )
         {
             i_tmp = 254;
             printf("\n arrive at stream end and start code is not found! ");
-        }
-        if( i == -2 )
-            printf("\n p->iBytePosition error! ");
+        }*/
+        /*if( i == -2 )
+            printf("\n p->iBytePosition error! ");*/
         //exit(i);
-    }
+    //}
     buf[0] = 0;
     buf[1] = 0;
     buf[2] = 1;

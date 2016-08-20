@@ -154,3 +154,22 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+/common/x86/bavs_mc_chroma - Copy.asm
+/pthread
+/doc
+/readme
+/bavsdec.c
+/bavs.h
+/bavs.c
+/bavs_hxc_20160711.rar
+/bavs_hxc_20160522.rar
+/bavs_hxc_20160502.rar
+/bavs_hxc_20160410.rar
+/bavs_hxc_20160329.rar
+/bavs_hxc_20160312.rar
+/bavs_ff.h
+/bavs_ff.c
+/bavs_decoder_nouse.c
+/dec_out.yuv
+/cavs.VC.VC.opendb
+/cavs.VC.db

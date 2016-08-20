@@ -4294,8 +4294,8 @@ static void mv_pred_sub_direct(cavs_decoder *p,xavs_vector *mv, int i_Offset,uin
     else
     {
         mv_pred_median(p, mvP, mvA, mvB, mvC);
-		if(p->b_error_flag)
-			return;
+		//if(p->b_error_flag)
+			//return;
     }
 }
 
