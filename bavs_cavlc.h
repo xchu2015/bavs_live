@@ -368,8 +368,8 @@ typedef struct tagxavs_video_sequence_header
 	uint32_t  weighting_quant_flag;
 	uint32_t  mb_adapt_wq_disable;
 	uint32_t  chroma_quant_param_disable;
-	uint8_t   chroma_quant_param_delta_u;	
-	uint8_t   chroma_quant_param_delta_v;
+	/*u*/int8_t   chroma_quant_param_delta_u;	
+	/*u*/int8_t   chroma_quant_param_delta_v;
 	uint8_t  weighting_quant_param_index;
 	uint8_t   weighting_quant_param_delta1[6];
 	uint8_t   weighting_quant_param_delta2[6];
@@ -409,8 +409,8 @@ typedef struct tagxavs_picture_header
     uint8_t  b_skip_mode_flag;/*1bit u(1)*/
     uint8_t  b_loop_filter_disable;/*1bit u(1)*/
     uint8_t  b_loop_filter_parameter_flag;/*1bit u(1)*/
-    uint32_t  i_alpha_c_offset;/*se(v)*/
-    uint32_t  i_beta_offset;/*se(v)*/
+    /*u*/int32_t  i_alpha_c_offset;/*se(v)*/
+    /*u*/int32_t  i_beta_offset;/*se(v)*/
 
     /************************************************************************/
     /* yidong_profile       0x34                                                                                   */
@@ -419,14 +419,14 @@ typedef struct tagxavs_picture_header
     uint32_t  weighting_quant_flag;
     uint32_t  mb_adapt_wq_disable;
     uint32_t  chroma_quant_param_disable;
-    uint8_t   chroma_quant_param_delta_u;	
-    uint8_t   chroma_quant_param_delta_v;
+    /*u*/int8_t   chroma_quant_param_delta_u;	
+    /*u*/int8_t   chroma_quant_param_delta_v;
     uint8_t   weighting_quant_param_index;
     uint8_t   weighting_quant_param_delta1[6];
     uint8_t   weighting_quant_param_delta2[6];
 	
-	uint8_t   weighting_quant_param_undetail[6];
-	uint8_t   weighting_quant_param_detail[6];
+	/*u*/int8_t   weighting_quant_param_undetail[6];
+	/*u*/int8_t   weighting_quant_param_detail[6];
 
     uint32_t  scene_adapt_disable;
     uint32_t  scene_model_update_flag;
